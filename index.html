@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HubSpot Calling Widget</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f4f4f4;
+    }
+    #widget-container {
+      text-align: center;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ddd;
+      cursor: not-allowed;
+    }
+    .primary-button {
+      background-color: #007bff;
+      color: white;
+    }
+    .danger-button {
+      background-color: #dc3545;
+      color: white;
+    }
+    .success-button {
+      background-color: #28a745;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<div id="widget-container">
+  <h1>HubSpot Calling Widget</h1>
+  <p>Simulate calling actions using the buttons below:</p>
+  <button id="login-btn" class="primary-button">Log In</button>
+  <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
+  <button id="incoming-btn" class="primary-button success-button">Incoming Call</button>
+  <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
+  <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
+  <button id="resize-btn" class="primary-button">Resize Widget</button>
+</div>
+
+<script src="https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js"></script>
+<script>
+  // Initialize State
+  const state = {
+    userId: null,
+    portalId: null,
+    ownerId: null,
+    externalCallId: null,
+    toNumber: null,
+    fromNumber: "+1234567890", // Fixed example caller number
+  };
+
+  // Initialize Calling Extensions SDK
+  const CallingExtensions = window.default;
+  const cti = new CallingExtensions({
+    debugMode: true, // Enables detailed logs for debugging purposes
+    eventHandlers: {
+      onReady: ({ portalId, userId, ownerId } = {}) => {
+        console.log("HubSpot Calling Widget Ready");
+        state.userId = userId || 0;
+        state.portalId = portalId || 0;
+        state.ownerId = ownerId || 0;
+
+        cti.initialized({
+          isLoggedIn: false,
+          isAvailable: false,
+          sizeInfo: { width: 400, height: 650 },
+        });
+      },
+      onDialNumber: (data) => {
+        console.log("Dialing number:", data.phoneNumber);
+        state.toNumber = data.phoneNumber;
+      },
+    },
+  });
+
+  // Button Actions
+  const logInButton = document.getElementById("login-btn");
+  const logOutButton = document.getElementById("logout-btn");
+  const incomingButton = document.getElementById("incoming-btn");
+  const answerButton = document.getElementById("answer-btn");
+  const endButton = document.getElementById("end-btn");
+  const resizeButton = document.getElementById("resize-btn");
+
+  logInButton.addEventListener("click", () => {
+    cti.userLoggedIn();
+    console.log("User Logged In");
+    disableButtons([logInButton]);
+    enableButtons([logOutButton, incomingButton]);
+  });
+
+  logOutButton.addEventListener("click", () => {
+    cti.userLoggedOut();
+    console.log("User Logged Out");
+    disableButtons([logOutButton, incomingButton, answerButton, endButton]);
+    enableButtons([logInButton]);
+  });
+
+  incomingButton.addEventListener("click", () => {
+    state.externalCallId = uuidv4(); // Generate unique call ID
+    state.toNumber = "+9876543210"; // Example called number
+
+    cti.incomingCall({
+      externalCallId: state.externalCallId,
+      createEngagement: true, // Log the call in HubSpot
+      fromNumber: state.fromNumber,
+      toNumber: state.toNumber,
+    });
+    console.log("Incoming call sent to HubSpot...");
+    enableButtons([answerButton]);
+    disableButtons([incomingButton]);
+  });
+
+  answerButton.addEventListener("click", () => {
+    cti.callAnswered({
+      externalCallId: state.externalCallId,
+    });
+    console.log("Call answered");
+    enableButtons([endButton]);
+    disableButtons([answerButton]);
+  });
+
+  endButton.addEventListener("click", () => {
+    cti.callEnded({
+      externalCallId: state.externalCallId,
+      callEndStatus: cti.Constants.callEndStatus.INTERNAL_COMPLETED,
+    });
+    console.log("Call ended");
+    disableButtons([endButton]);
+    enableButtons([incomingButton]);
+  });
+
+  resizeButton.addEventListener("click", () => {
+    cti.resizeWidget({
+      width: 500,
+      height: 700,
+    });
+    console.log("Widget resized");
+  });
+
+  // Helpers to Enable and Disable Buttons
+  function enableButtons(buttons) {
+    for (const button of buttons) {
+      button.disabled = false;
+    }
+  }
+
+  function disableButtons(buttons) {
+    for (const button of buttons) {
+      button.disabled = true;
+    }
+  }
+</script>
+</body>
+</html>
