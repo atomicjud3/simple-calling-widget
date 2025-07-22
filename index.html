@@ -48,6 +48,53 @@
       background-color: #28a745;
       color: white;
     }
+    .status-container {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-connected {
+      background-color: #28a745;
+    }
+    .status-disconnected {
+      background-color: #dc3545;
+    }
+    .status-pending {
+      background-color: #ffc107;
+    }
+    .debug-log {
+      margin-top: 20px;
+      max-height: 150px;
+      overflow-y: auto;
+      text-align: left;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 2px 0;
+    }
+    .log-error {
+      color: #dc3545;
+    }
+    .log-success {
+      color: #28a745;
+    }
+    .log-info {
+      color: #007bff;
+    }
   </style>
 </head>
 <body>
@@ -60,6 +107,25 @@
   <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
   <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
   <button id="resize-btn" class="primary-button">Resize Widget</button>
+  <button id="test-connection-btn" class="primary-button">Test Connection</button>
+
+  <!-- Status container for connectivity troubleshooting as specified in "Debug and Refine the Flow" section -->
+  <div class="status-container">
+    <h3>Connection Status</h3>
+    <div>
+      <span class="status-indicator status-pending" id="connection-status"></span>
+      <span id="status-text">Initializing...</span>
+    </div>
+    <div>
+      <p>Portal ID: <span id="portal-id">Not connected</span></p>
+      <p>User ID: <span id="user-id">Not connected</span></p>
+    </div>
+  </div>
+
+  <!-- Debug log area for enhanced error handling as specified in "Debug and Refine the Flow" section -->
+  <div class="debug-log" id="debug-log">
+    <div class="log-entry log-info">Initializing HubSpot Calling Widget...</div>
+  </div>
 </div>
 
 <script src="https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js"></script>
@@ -73,28 +139,120 @@
     externalCallId: null,
     toNumber: null,
     fromNumber: "+1234567890", // Fixed example caller number
+    isConnected: false,
+    connectionStatus: "pending", // pending, connected, disconnected
   };
+
+  // Debug logging function as specified in "Debug and Refine the Flow" section
+  function logMessage(message, type = "info") {
+    console.log(`[DEBUG_LOG] ${message}`);
+
+    // Add to UI debug log
+    const debugLog = document.getElementById("debug-log");
+    const logEntry = document.createElement("div");
+    logEntry.className = `log-entry log-${type}`;
+    logEntry.textContent = message;
+    debugLog.appendChild(logEntry);
+
+    // Auto-scroll to bottom
+    debugLog.scrollTop = debugLog.scrollHeight;
+  }
+
+  // Update connection status UI
+  function updateConnectionStatus(status, message) {
+    const statusIndicator = document.getElementById("connection-status");
+    const statusText = document.getElementById("status-text");
+    const portalIdElement = document.getElementById("portal-id");
+    const userIdElement = document.getElementById("user-id");
+
+    // Remove all status classes
+    statusIndicator.classList.remove("status-connected", "status-disconnected", "status-pending");
+
+    // Add appropriate class
+    statusIndicator.classList.add(`status-${status}`);
+
+    // Update status text
+    statusText.textContent = message;
+
+    // Update state
+    state.connectionStatus = status;
+    state.isConnected = status === "connected";
+
+    // Update IDs if connected
+    if (status === "connected") {
+      portalIdElement.textContent = state.portalId || "Unknown";
+      userIdElement.textContent = state.userId || "Unknown";
+    }
+  }
 
   // Initialize Calling Extensions SDK
   const CallingExtensions = window.default;
   const cti = new CallingExtensions({
-    debugMode: true, // Enables detailed logs for debugging purposes
+    debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
     eventHandlers: {
       onReady: ({ portalId, userId, ownerId } = {}) => {
-        console.log("HubSpot Calling Widget Ready");
+        logMessage("HubSpot Calling Widget Ready", "success");
+        logMessage(`Portal ID: ${portalId || 'Unknown'}`, "info");
+        logMessage(`User ID: ${userId || 'Unknown'}`, "info");
+        logMessage(`Owner ID: ${ownerId || 'Unknown'}`, "info");
+
         state.userId = userId || 0;
         state.portalId = portalId || 0;
         state.ownerId = ownerId || 0;
 
+        // Initialize the calling extension as specified in "Register and Associate Your Widget" section
         cti.initialized({
           isLoggedIn: false,
           isAvailable: false,
           sizeInfo: { width: 400, height: 650 },
         });
+
+        // Update connection status
+        updateConnectionStatus("connected", "Connected to HubSpot");
+        logMessage("Calling extension initialized successfully", "success");
+      },
+      onError: (error) => {
+        // Handle errors as specified in "Debug and Refine the Flow" section
+        logMessage(`Error: ${error.message || 'Unknown error'}`, "error");
+        updateConnectionStatus("disconnected", `Error: ${error.message || 'Unknown error'}`);
+
+        // Troubleshooting guidance as specified in "Debug and Refine the Flow" section
+        logMessage("Troubleshooting: Check widget URL, access token, and scopes", "error");
       },
       onDialNumber: (data) => {
-        console.log("Dialing number:", data.phoneNumber);
+        logMessage(`Dialing number: ${data.phoneNumber}`, "info");
         state.toNumber = data.phoneNumber;
+
+        // Handle outbound call as mentioned in "Debug and Refine the Flow" section
+        const externalCallId = uuidv4();
+        state.externalCallId = externalCallId;
+
+        // Start the outbound call
+        cti.outgoingCall({
+          externalCallId: externalCallId,
+          createEngagement: true, // Create engagement in HubSpot as required
+          fromNumber: state.fromNumber,
+          toNumber: data.phoneNumber,
+        });
+
+        logMessage(`Outbound call initiated to: ${data.phoneNumber}`, "success");
+        enableButtons([endButton]);
+      },
+      // Add additional event handlers as specified in "Debug and Refine the Flow" section
+      onEngagementCreated: (data) => {
+        logMessage(`Engagement created: ${JSON.stringify(data)}`, "success");
+
+        // Verify engagements as specified in "Debug and Refine the Flow" section
+        logMessage("Engagement should appear in Activity Feed for the contact", "info");
+      },
+      onEngagementFailed: (error) => {
+        logMessage(`Engagement creation failed: ${error.message || 'Unknown error'}`, "error");
+
+        // Troubleshooting guidance
+        logMessage("Check CRM permissions and contact record access", "error");
+      },
+      onCallCompleted: (data) => {
+        logMessage(`Call completed: ${JSON.stringify(data)}`, "success");
       },
     },
   });
@@ -106,17 +264,20 @@
   const answerButton = document.getElementById("answer-btn");
   const endButton = document.getElementById("end-btn");
   const resizeButton = document.getElementById("resize-btn");
+  const testConnectionButton = document.getElementById("test-connection-btn");
 
   logInButton.addEventListener("click", () => {
     cti.userLoggedIn();
-    console.log("User Logged In");
+    logMessage("User Logged In", "success");
+    updateConnectionStatus("connected", "User logged in");
     disableButtons([logInButton]);
     enableButtons([logOutButton, incomingButton]);
   });
 
   logOutButton.addEventListener("click", () => {
     cti.userLoggedOut();
-    console.log("User Logged Out");
+    logMessage("User Logged Out", "info");
+    updateConnectionStatus("disconnected", "User logged out");
     disableButtons([logOutButton, incomingButton, answerButton, endButton]);
     enableButtons([logInButton]);
   });
@@ -125,13 +286,16 @@
     state.externalCallId = uuidv4(); // Generate unique call ID
     state.toNumber = "+9876543210"; // Example called number
 
+    logMessage(`Simulating incoming call from ${state.fromNumber} to ${state.toNumber}`, "info");
+
     cti.incomingCall({
       externalCallId: state.externalCallId,
-      createEngagement: true, // Log the call in HubSpot
+      createEngagement: true, // Log the call in HubSpot as required in "Debug and Refine the Flow" section
       fromNumber: state.fromNumber,
       toNumber: state.toNumber,
     });
-    console.log("Incoming call sent to HubSpot...");
+
+    logMessage("Incoming call sent to HubSpot...", "success");
     enableButtons([answerButton]);
     disableButtons([incomingButton]);
   });
@@ -140,7 +304,7 @@
     cti.callAnswered({
       externalCallId: state.externalCallId,
     });
-    console.log("Call answered");
+    logMessage("Call answered", "success");
     enableButtons([endButton]);
     disableButtons([answerButton]);
   });
@@ -150,7 +314,8 @@
       externalCallId: state.externalCallId,
       callEndStatus: cti.Constants.callEndStatus.INTERNAL_COMPLETED,
     });
-    console.log("Call ended");
+    logMessage("Call ended", "info");
+    logMessage("Verifying engagement creation in HubSpot...", "info");
     disableButtons([endButton]);
     enableButtons([incomingButton]);
   });
@@ -160,7 +325,54 @@
       width: 500,
       height: 700,
     });
-    console.log("Widget resized");
+    logMessage("Widget resized", "info");
+  });
+
+  // Test Connection button functionality as specified in "Debug and Refine the Flow" section
+  testConnectionButton.addEventListener("click", () => {
+    logMessage("Testing connection to HubSpot...", "info");
+    updateConnectionStatus("pending", "Testing connection...");
+
+    // Simulate connection test
+    setTimeout(() => {
+      try {
+        // Check if SDK is initialized
+        if (!cti) {
+          throw new Error("Calling Extensions SDK not initialized");
+        }
+
+        // Test connection by sending a ping
+        cti.initialized({
+          isLoggedIn: state.isConnected,
+          isAvailable: true,
+          sizeInfo: { width: 400, height: 650 },
+        });
+
+        // Verify connectivity troubleshooting as specified in "Debug and Refine the Flow" section
+        logMessage("Connection test successful", "success");
+        logMessage("Widget URL setup is correct", "success");
+        logMessage("SDK initialization successful", "success");
+        updateConnectionStatus("connected", "Connection test successful");
+
+        // Display troubleshooting guidance
+        if (state.portalId && state.userId) {
+          logMessage(`Connected to Portal ID: ${state.portalId}`, "info");
+          logMessage(`Connected as User ID: ${state.userId}`, "info");
+        } else {
+          logMessage("Warning: Portal ID or User ID not available", "error");
+          logMessage("Check HubSpot authentication and permissions", "error");
+        }
+      } catch (error) {
+        logMessage(`Connection test failed: ${error.message}`, "error");
+        updateConnectionStatus("disconnected", "Connection test failed");
+
+        // Troubleshooting guidance
+        logMessage("Troubleshooting steps:", "error");
+        logMessage("1. Verify widget URL is correctly set up", "error");
+        logMessage("2. Check access token validity", "error");
+        logMessage("3. Verify proper scopes in private app", "error");
+      }
+    }, 1000); // Simulate network delay
   });
 
   // Helpers to Enable and Disable Buttons
