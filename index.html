@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HubSpot Calling Widget</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📞</text></svg>" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -630,7 +631,7 @@
 
   // Notes modal elements
   const notesModal = document.getElementById("notes-modal");
-  const closeNotesModal = document.getElementById("close-notes-modal");
+  const closeNotesModalBtn = document.getElementById("close-notes-modal");
   const callNotesTextarea = document.getElementById("call-notes");
   const saveNotesButton = document.getElementById("save-notes-btn");
 
@@ -1101,7 +1102,7 @@
 
   // Notes modal event listeners
   addNotesButton.addEventListener("click", openNotesModal);
-  closeNotesModal.addEventListener("click", closeNotesModal);
+  closeNotesModalBtn.addEventListener("click", closeNotesModal);
   saveNotesButton.addEventListener("click", saveCallNotes);
 
   // Close modal when clicking outside of it
