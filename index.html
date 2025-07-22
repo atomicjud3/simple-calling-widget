@@ -284,7 +284,8 @@
   </div>
 </div>
 
-<script src="https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js" id="hubspot-sdk"></script>
+<!-- Load the SDK loader and UUID library -->
+<script src="sdk-loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js"></script>
 <script>
   // Initialize State
@@ -361,122 +362,97 @@
     }
   }
 
-  // Initialize Calling Extensions SDK
-  // Try different ways to access the CallingExtensions constructor
-  let CallingExtensionsConstructor;
+  // Initialize Calling Extensions SDK using the SDK Loader
+  let cti; // Declare cti variable to be used throughout the code
 
-  // Check for different possible ways the SDK might expose its functionality
-  if (typeof HubSpot !== 'undefined' && HubSpot.CallingExtensions) {
-    CallingExtensionsConstructor = HubSpot.CallingExtensions;
-    logMessage("Using HubSpot.CallingExtensions constructor", "success");
-  } else if (typeof window.HubSpot !== 'undefined' && window.HubSpot.CallingExtensions) {
-    CallingExtensionsConstructor = window.HubSpot.CallingExtensions;
-    logMessage("Using window.HubSpot.CallingExtensions constructor", "success");
-  } else if (typeof CallingExtensions !== 'undefined') {
-    CallingExtensionsConstructor = CallingExtensions;
-    logMessage("Using global CallingExtensions constructor", "success");
-  } else if (typeof window.CallingExtensions !== 'undefined') {
-    CallingExtensionsConstructor = window.CallingExtensions;
-    logMessage("Using window.CallingExtensions constructor", "success");
-  } else {
-    // Log error and update status
-    logMessage("CallingExtensions constructor not found", "error");
-    updateConnectionStatus("disconnected", "SDK initialization failed");
+  // Configure the SDK initialization options
+  const sdkOptions = {
+    // Pass the logging and status update functions to the SDK loader
+    logMessage: logMessage,
+    updateConnectionStatus: updateConnectionStatus,
 
-    // Log available global objects for debugging
-    logMessage("Available global objects that might be related:", "info");
-    for (const key in window) {
-      if (key.includes('HubSpot') || key.includes('Calling') || key.includes('cti')) {
-        logMessage(`Found: ${key}`, "info");
-      }
+    // Configure the CTI options
+    ctiOptions: {
+      debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
+      eventHandlers: {
+        onReady: ({ portalId, userId, ownerId } = {}) => {
+          logMessage("HubSpot Calling Widget Ready", "success");
+          logMessage(`Portal ID: ${portalId || 'Unknown'}`, "info");
+          logMessage(`User ID: ${userId || 'Unknown'}`, "info");
+          logMessage(`Owner ID: ${ownerId || 'Unknown'}`, "info");
+
+          state.userId = userId || 0;
+          state.portalId = portalId || 0;
+          state.ownerId = ownerId || 0;
+
+          // Initialize the calling extension as specified in "Register and Associate Your Widget" section
+          cti.initialized({
+            isLoggedIn: false,
+            isAvailable: false,
+            sizeInfo: { width: 400, height: 650 },
+          });
+
+          // Update connection status
+          updateConnectionStatus("connected", "Connected to HubSpot");
+          logMessage("Calling extension initialized successfully", "success");
+        },
+        onError: (error) => {
+          // Handle errors as specified in "Debug and Refine the Flow" section
+          logMessage(`Error: ${error.message || 'Unknown error'}`, "error");
+          updateConnectionStatus("disconnected", `Error: ${error.message || 'Unknown error'}`);
+
+          // Troubleshooting guidance as specified in "Debug and Refine the Flow" section
+          logMessage("Troubleshooting: Check widget URL, access token, and scopes", "error");
+        },
+        onDialNumber: (data) => {
+          logMessage(`Dialing number: ${data.phoneNumber}`, "info");
+          state.toNumber = data.phoneNumber;
+
+          // Handle outbound call as mentioned in "Debug and Refine the Flow" section
+          const externalCallId = uuidv4();
+          state.externalCallId = externalCallId;
+
+          // Start the outbound call
+          cti.outgoingCall({
+            externalCallId: externalCallId,
+            createEngagement: true, // Create engagement in HubSpot as required
+            fromNumber: state.fromNumber,
+            toNumber: data.phoneNumber,
+          });
+
+          logMessage(`Outbound call initiated to: ${data.phoneNumber}`, "success");
+          enableButtons([endButton]);
+        },
+        // Add additional event handlers as specified in "Debug and Refine the Flow" section
+        onEngagementCreated: (data) => {
+          logMessage(`Engagement created: ${JSON.stringify(data)}`, "success");
+
+          // Verify engagements as specified in "Debug and Refine the Flow" section
+          logMessage("Engagement should appear in Activity Feed for the contact", "info");
+        },
+        onEngagementFailed: (error) => {
+          logMessage(`Engagement creation failed: ${error.message || 'Unknown error'}`, "error");
+
+          // Troubleshooting guidance
+          logMessage("Check CRM permissions and contact record access", "error");
+        },
+        onCallCompleted: (data) => {
+          logMessage(`Call completed: ${JSON.stringify(data)}`, "success");
+        },
+      },
     }
+  };
 
-    // Create a dummy constructor to prevent errors
-    CallingExtensionsConstructor = function() {
-      this.initialized = function() {};
-      this.userLoggedIn = function() {};
-      this.userLoggedOut = function() {};
-      this.incomingCall = function() {};
-      this.outgoingCall = function() {};
-      this.callAnswered = function() {};
-      this.callEnded = function() {};
-      this.resizeWidget = function() {};
-      this.Constants = { callEndStatus: { INTERNAL_COMPLETED: 'completed' } };
-    };
-
-    logMessage("Created dummy constructor to prevent errors", "error");
-  }
-
-  // Create instance using the found constructor
-  const cti = new CallingExtensionsConstructor({
-    debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
-    eventHandlers: {
-      onReady: ({ portalId, userId, ownerId } = {}) => {
-        logMessage("HubSpot Calling Widget Ready", "success");
-        logMessage(`Portal ID: ${portalId || 'Unknown'}`, "info");
-        logMessage(`User ID: ${userId || 'Unknown'}`, "info");
-        logMessage(`Owner ID: ${ownerId || 'Unknown'}`, "info");
-
-        state.userId = userId || 0;
-        state.portalId = portalId || 0;
-        state.ownerId = ownerId || 0;
-
-        // Initialize the calling extension as specified in "Register and Associate Your Widget" section
-        cti.initialized({
-          isLoggedIn: false,
-          isAvailable: false,
-          sizeInfo: { width: 400, height: 650 },
-        });
-
-        // Update connection status
-        updateConnectionStatus("connected", "Connected to HubSpot");
-        logMessage("Calling extension initialized successfully", "success");
-      },
-      onError: (error) => {
-        // Handle errors as specified in "Debug and Refine the Flow" section
-        logMessage(`Error: ${error.message || 'Unknown error'}`, "error");
-        updateConnectionStatus("disconnected", `Error: ${error.message || 'Unknown error'}`);
-
-        // Troubleshooting guidance as specified in "Debug and Refine the Flow" section
-        logMessage("Troubleshooting: Check widget URL, access token, and scopes", "error");
-      },
-      onDialNumber: (data) => {
-        logMessage(`Dialing number: ${data.phoneNumber}`, "info");
-        state.toNumber = data.phoneNumber;
-
-        // Handle outbound call as mentioned in "Debug and Refine the Flow" section
-        const externalCallId = uuidv4();
-        state.externalCallId = externalCallId;
-
-        // Start the outbound call
-        cti.outgoingCall({
-          externalCallId: externalCallId,
-          createEngagement: true, // Create engagement in HubSpot as required
-          fromNumber: state.fromNumber,
-          toNumber: data.phoneNumber,
-        });
-
-        logMessage(`Outbound call initiated to: ${data.phoneNumber}`, "success");
-        enableButtons([endButton]);
-      },
-      // Add additional event handlers as specified in "Debug and Refine the Flow" section
-      onEngagementCreated: (data) => {
-        logMessage(`Engagement created: ${JSON.stringify(data)}`, "success");
-
-        // Verify engagements as specified in "Debug and Refine the Flow" section
-        logMessage("Engagement should appear in Activity Feed for the contact", "info");
-      },
-      onEngagementFailed: (error) => {
-        logMessage(`Engagement creation failed: ${error.message || 'Unknown error'}`, "error");
-
-        // Troubleshooting guidance
-        logMessage("Check CRM permissions and contact record access", "error");
-      },
-      onCallCompleted: (data) => {
-        logMessage(`Call completed: ${JSON.stringify(data)}`, "success");
-      },
-    },
-  });
+  // Initialize the SDK using the SDK Loader
+  window.HubSpotSDKLoader.initializeSDK(sdkOptions)
+    .then(ctiInstance => {
+      // Store the cti instance for use throughout the code
+      cti = ctiInstance;
+      logMessage("SDK initialized successfully using SDK Loader", "success");
+    })
+    .catch(error => {
+      logMessage(`Failed to initialize SDK: ${error.message}`, "error");
+    });
 
   // CRM Integration Functions
 
@@ -1405,6 +1381,7 @@
       button.disabled = true;
     }
   }
+
 </script>
 </body>
 </html>
