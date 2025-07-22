@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HubSpot Calling Widget Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 20px;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      font-family: monospace;
+      height: 200px;
+      overflow-y: auto;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .info {
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+  <h1>HubSpot Calling Widget Test</h1>
+  <p>This page tests the initialization of the HubSpot Calling Extensions SDK.</p>
+
+  <button id="test-btn">Test SDK Initialization</button>
+
+  <div class="log" id="log"></div>
+
+  <script src="https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js"></script>
+  <script>
+    // Function to log messages
+    function log(message, type = 'info') {
+      console.log(`[${type.toUpperCase()}] ${message}`);
+
+      const logElement = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logElement.appendChild(entry);
+
+      // Auto-scroll to bottom
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    // Test button click handler
+    document.getElementById('test-btn').addEventListener('click', function() {
+      log('Testing SDK initialization...', 'info');
+
+      try {
+        // Test if CallingExtensions is available
+        if (typeof CallingExtensions === 'undefined') {
+          throw new Error('CallingExtensions is not defined in the global scope');
+        }
+
+        log('CallingExtensions is defined in the global scope', 'success');
+
+        // Try to initialize the SDK
+        const cti = new CallingExtensions({
+          debugMode: true,
+          eventHandlers: {
+            onReady: (data) => {
+              log(`SDK initialized successfully. Portal ID: ${data.portalId || 'Unknown'}`, 'success');
+            },
+            onError: (error) => {
+              log(`SDK error: ${error.message || 'Unknown error'}`, 'error');
+            }
+          }
+        });
+
+        log('SDK instance created successfully', 'success');
+
+        // Initialize the calling extension
+        cti.initialized({
+          isLoggedIn: false,
+          isAvailable: true,
+          sizeInfo: { width: 400, height: 500 }
+        });
+
+        log('Calling extension initialized', 'success');
+      } catch (error) {
+        log(`Error: ${error.message}`, 'error');
+        log('Stack trace:', 'error');
+        log(error.stack, 'error');
+      }
+    });
+
+    // Log initial message
+    log('Page loaded. Click the button to test SDK initialization.', 'info');
+  </script>
+</body>
+</html>
