@@ -186,8 +186,8 @@
   }
 
   // Initialize Calling Extensions SDK
-  // Access the CallingExtensions constructor directly from the global scope
-  const cti = new window.CallingExtensions({
+  // Access the CallingExtensions constructor directly as shown in the documentation
+  const cti = new CallingExtensions({
     debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
     eventHandlers: {
       onReady: ({ portalId, userId, ownerId } = {}) => {
