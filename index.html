@@ -107,7 +107,7 @@
   <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
   <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
   <button id="resize-btn" class="primary-button">Resize Widget</button>
-  <button id="test-connection-btn" class="primary-button">Test Connection</button>
+  <button id="test-connection-btn" class="primary-button">Test Connection V1.0</button>
 
   <!-- Status container for connectivity troubleshooting as specified in "Debug and Refine the Flow" section -->
   <div class="status-container">
@@ -186,8 +186,8 @@
   }
 
   // Initialize Calling Extensions SDK
-  const CallingExtensions = window.default;
-  const cti = new CallingExtensions({
+  // Access the CallingExtensions constructor directly from the global scope
+  const cti = new window.CallingExtensions({
     debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
     eventHandlers: {
       onReady: ({ portalId, userId, ownerId } = {}) => {
