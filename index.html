@@ -95,11 +95,97 @@
     .log-info {
       color: #007bff;
     }
+  /* Modal styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+  }
+
+  .close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .close:hover {
+    color: #000;
+  }
+
+  .modal-body {
+    margin-bottom: 15px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Blinking animation for recording indicator */
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
   </style>
 </head>
 <body>
 <div id="widget-container">
   <h1>HubSpot Calling Widget</h1>
+
+  <!-- CRM Integration: Contact Search -->
+  <div class="status-container">
+    <h3>Contact Search</h3>
+    <div style="display: flex; margin-bottom: 10px;">
+      <input type="text" id="contact-search" placeholder="Search contacts..." style="flex: 1; padding: 8px; margin-right: 5px;">
+      <button id="search-btn" class="primary-button">Search</button>
+    </div>
+    <div id="contact-results" style="max-height: 150px; overflow-y: auto; display: none;">
+      <!-- Contact search results will be displayed here -->
+    </div>
+  </div>
+
+  <!-- CRM Integration: Caller ID Customization -->
+  <div class="status-container">
+    <h3>Caller ID Settings</h3>
+    <div style="margin-bottom: 10px;">
+      <label for="caller-id">Your Caller ID:</label>
+      <div style="display: flex; margin-top: 5px;">
+        <input type="text" id="caller-id" placeholder="+1234567890" value="+1234567890" style="flex: 1; padding: 8px; margin-right: 5px;">
+        <button id="save-caller-id-btn" class="primary-button">Save</button>
+      </div>
+    </div>
+    <div>
+      <p><small>This number will be displayed to recipients when you make outbound calls.</small></p>
+    </div>
+  </div>
+
   <p>Simulate calling actions using the buttons below:</p>
   <button id="login-btn" class="primary-button">Log In</button>
   <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
@@ -108,6 +194,24 @@
   <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
   <button id="resize-btn" class="primary-button">Resize Widget</button>
   <button id="test-connection-btn" class="primary-button">Test Connection V1.0</button>
+  <button id="history-btn" class="primary-button">Call History</button>
+
+  <!-- Call History View -->
+  <div class="status-container" id="call-history-container" style="display: none; max-height: 300px; overflow-y: auto;">
+    <h3>Call History</h3>
+    <div id="call-history-list">
+      <p>No call history available.</p>
+    </div>
+  </div>
+
+  <!-- Recordings View -->
+  <div class="status-container" id="recordings-container" style="display: none; max-height: 300px; overflow-y: auto;">
+    <h3>Recordings</h3>
+    <div id="recordings-list">
+      <p>No recordings available.</p>
+    </div>
+    <button id="recordings-btn" class="primary-button">Show Recordings</button>
+  </div>
 
   <!-- Status container for connectivity troubleshooting as specified in "Debug and Refine the Flow" section -->
   <div class="status-container">
@@ -122,9 +226,60 @@
     </div>
   </div>
 
+  <!-- Call status container for call management features -->
+  <div class="status-container" id="call-status-container" style="display: none;">
+    <h3>Call Status</h3>
+    <div>
+      <p>Status: <span id="call-status-text">No active call</span></p>
+      <p>Duration: <span id="call-duration">00:00:00</span></p>
+    </div>
+    <div>
+      <button id="mute-btn" class="primary-button" disabled>Mute</button>
+      <button id="hold-btn" class="primary-button" disabled>Hold</button>
+      <button id="transfer-btn" class="primary-button" disabled>Transfer</button>
+    </div>
+
+    <!-- Call recording controls -->
+    <div style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
+      <button id="record-btn" class="primary-button danger-button" disabled>Start Recording</button>
+      <span id="recording-status" style="margin-left: 10px; display: none;">
+        <span style="color: red; animation: blink 1s infinite;">●</span> Recording...
+      </span>
+    </div>
+
+    <!-- Contact information display -->
+    <div id="contact-info-display" style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px; display: none;">
+      <h4>Contact Information</h4>
+      <div id="contact-details">
+        <p><strong>Name:</strong> <span id="contact-name">-</span></p>
+        <p><strong>Company:</strong> <span id="contact-company">-</span></p>
+        <p><strong>Phone:</strong> <span id="contact-phone">-</span></p>
+        <p><strong>Email:</strong> <span id="contact-email">-</span></p>
+      </div>
+      <button id="add-notes-btn" class="primary-button" style="margin-top: 10px;">Add Notes</button>
+    </div>
+  </div>
+
   <!-- Debug log area for enhanced error handling as specified in "Debug and Refine the Flow" section -->
   <div class="debug-log" id="debug-log">
     <div class="log-entry log-info">Initializing HubSpot Calling Widget...</div>
+  </div>
+</div>
+
+<!-- Call Notes Modal -->
+<div id="notes-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Call Notes</h3>
+      <span class="close" id="close-notes-modal">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Add notes about this call. These notes will be saved with the call record in HubSpot.</p>
+      <textarea id="call-notes" rows="5" style="width: 100%; padding: 8px; margin-top: 10px;" placeholder="Enter your notes here..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button id="save-notes-btn" class="primary-button success-button">Save Notes</button>
+    </div>
   </div>
 </div>
 
@@ -141,6 +296,26 @@
     fromNumber: "+1234567890", // Fixed example caller number
     isConnected: false,
     connectionStatus: "pending", // pending, connected, disconnected
+    callStartTime: null,
+    callDuration: 0,
+    callActive: false,
+    callMuted: false,
+    callOnHold: false,
+    callTimer: null,
+    currentContact: null,
+    callNotes: "", // Store notes for the current call
+    callHistory: [], // Store history of calls with notes,
+    isRecording: false, // Track if recording is active
+    recordingStartTime: null, // When recording started
+    recordings: [], // Store recordings
+    // Mock contacts data for CRM integration demo
+    mockContacts: [
+      { id: 1, firstName: "John", lastName: "Doe", phone: "+12025550108", email: "john.doe@example.com", company: "Acme Inc." },
+      { id: 2, firstName: "Jane", lastName: "Smith", phone: "+12025550145", email: "jane.smith@example.com", company: "XYZ Corp" },
+      { id: 3, firstName: "Michael", lastName: "Johnson", phone: "+12025550172", email: "michael.j@example.com", company: "ABC Ltd" },
+      { id: 4, firstName: "Sarah", lastName: "Williams", phone: "+12025550189", email: "s.williams@example.com", company: "Global Tech" },
+      { id: 5, firstName: "David", lastName: "Brown", phone: "+12025550194", email: "david.brown@example.com", company: "Innovative Solutions" }
+    ]
   };
 
   // Debug logging function as specified in "Debug and Refine the Flow" section
@@ -302,6 +477,135 @@
     },
   });
 
+  // CRM Integration Functions
+
+  // Search contacts based on search term
+  function searchContacts(searchTerm) {
+    if (!searchTerm) return [];
+
+    searchTerm = searchTerm.toLowerCase();
+
+    return state.mockContacts.filter(contact => {
+      return (
+        contact.firstName.toLowerCase().includes(searchTerm) ||
+        contact.lastName.toLowerCase().includes(searchTerm) ||
+        contact.email.toLowerCase().includes(searchTerm) ||
+        contact.company.toLowerCase().includes(searchTerm) ||
+        contact.phone.includes(searchTerm)
+      );
+    });
+  }
+
+  // Display contact search results
+  function displaySearchResults(results) {
+    const resultsContainer = document.getElementById('contact-results');
+
+    // Clear previous results
+    resultsContainer.innerHTML = '';
+
+    if (results.length === 0) {
+      resultsContainer.innerHTML = '<p>No contacts found</p>';
+      resultsContainer.style.display = 'block';
+      return;
+    }
+
+    // Create a list of results
+    const resultsList = document.createElement('ul');
+    resultsList.style.listStyle = 'none';
+    resultsList.style.padding = '0';
+    resultsList.style.margin = '0';
+
+    results.forEach(contact => {
+      const listItem = document.createElement('li');
+      listItem.style.padding = '8px';
+      listItem.style.borderBottom = '1px solid #eee';
+      listItem.style.cursor = 'pointer';
+
+      // Add hover effect
+      listItem.onmouseover = () => { listItem.style.backgroundColor = '#f0f0f0'; };
+      listItem.onmouseout = () => { listItem.style.backgroundColor = 'transparent'; };
+
+      // Create contact info
+      const contactInfo = document.createElement('div');
+      contactInfo.innerHTML = `
+        <strong>${contact.firstName} ${contact.lastName}</strong>
+        <div>${contact.company}</div>
+        <div>${contact.phone} | ${contact.email}</div>
+      `;
+
+      // Create call button
+      const callButton = document.createElement('button');
+      callButton.className = 'primary-button success-button';
+      callButton.style.marginTop = '5px';
+      callButton.textContent = 'Call';
+      callButton.onclick = (e) => {
+        e.stopPropagation(); // Prevent triggering the listItem click
+        initiateCallToContact(contact);
+      };
+
+      // Add click event to the list item to select the contact
+      listItem.onclick = () => {
+        selectContact(contact);
+      };
+
+      // Append elements
+      listItem.appendChild(contactInfo);
+      listItem.appendChild(callButton);
+      resultsList.appendChild(listItem);
+    });
+
+    // Add results to container
+    resultsContainer.appendChild(resultsList);
+    resultsContainer.style.display = 'block';
+  }
+
+  // Select a contact
+  function selectContact(contact) {
+    state.currentContact = contact;
+    logMessage(`Selected contact: ${contact.firstName} ${contact.lastName}`, "info");
+
+    // In a real implementation, you would display the contact details in a dedicated area
+    // For this demo, we'll just log the selection
+  }
+
+  // Initiate call to a contact
+  function initiateCallToContact(contact) {
+    if (!state.isConnected) {
+      logMessage("Please log in first", "error");
+      return;
+    }
+
+    if (state.callActive) {
+      logMessage("Please end the current call before starting a new one", "error");
+      return;
+    }
+
+    logMessage(`Initiating call to ${contact.firstName} ${contact.lastName} at ${contact.phone}...`, "info");
+
+    // Set the current contact and phone number
+    state.currentContact = contact;
+    state.toNumber = contact.phone;
+
+    // Generate a unique call ID
+    state.externalCallId = uuidv4();
+
+    // Start the outbound call
+    cti.outgoingCall({
+      externalCallId: state.externalCallId,
+      createEngagement: true,
+      fromNumber: state.fromNumber,
+      toNumber: contact.phone,
+    });
+
+    // Start the call timer
+    startCallTimer();
+
+    // Enable end button
+    enableButtons([endButton]);
+
+    logMessage(`Outbound call initiated to ${contact.firstName} ${contact.lastName}`, "success");
+  }
+
   // Button Actions
   const logInButton = document.getElementById("login-btn");
   const logOutButton = document.getElementById("logout-btn");
@@ -310,6 +614,39 @@
   const endButton = document.getElementById("end-btn");
   const resizeButton = document.getElementById("resize-btn");
   const testConnectionButton = document.getElementById("test-connection-btn");
+  const muteButton = document.getElementById("mute-btn");
+  const holdButton = document.getElementById("hold-btn");
+  const transferButton = document.getElementById("transfer-btn");
+  const searchButton = document.getElementById("search-btn");
+  const contactSearchInput = document.getElementById("contact-search");
+  const callerIdInput = document.getElementById("caller-id");
+  const saveCallerIdButton = document.getElementById("save-caller-id-btn");
+  const contactInfoDisplay = document.getElementById("contact-info-display");
+  const contactName = document.getElementById("contact-name");
+  const contactCompany = document.getElementById("contact-company");
+  const contactPhone = document.getElementById("contact-phone");
+  const contactEmail = document.getElementById("contact-email");
+  const addNotesButton = document.getElementById("add-notes-btn");
+
+  // Notes modal elements
+  const notesModal = document.getElementById("notes-modal");
+  const closeNotesModal = document.getElementById("close-notes-modal");
+  const callNotesTextarea = document.getElementById("call-notes");
+  const saveNotesButton = document.getElementById("save-notes-btn");
+
+  // Call history elements
+  const historyButton = document.getElementById("history-btn");
+  const callHistoryContainer = document.getElementById("call-history-container");
+  const callHistoryList = document.getElementById("call-history-list");
+
+  // Recording elements
+  const recordButton = document.getElementById("record-btn");
+  const recordingStatus = document.getElementById("recording-status");
+
+  // Recordings view elements
+  const recordingsContainer = document.getElementById("recordings-container");
+  const recordingsList = document.getElementById("recordings-list");
+  const recordingsButton = document.getElementById("recordings-btn");
 
   logInButton.addEventListener("click", () => {
     cti.userLoggedIn();
@@ -352,6 +689,9 @@
     logMessage("Call answered", "success");
     enableButtons([endButton]);
     disableButtons([answerButton]);
+
+    // Start call timer when call is answered
+    startCallTimer();
   });
 
   endButton.addEventListener("click", () => {
@@ -363,7 +703,422 @@
     logMessage("Verifying engagement creation in HubSpot...", "info");
     disableButtons([endButton]);
     enableButtons([incomingButton]);
+
+    // Stop call timer when call ends
+    stopCallTimer();
   });
+
+  // Call management button event listeners
+  muteButton.addEventListener("click", toggleMute);
+  holdButton.addEventListener("click", toggleHold);
+  transferButton.addEventListener("click", transferCall);
+
+  // Recording Functions
+
+  // Toggle recording
+  function toggleRecording() {
+    if (!state.callActive) {
+      logMessage("Cannot record: No active call", "error");
+      return;
+    }
+
+    if (state.isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+
+  // Start recording
+  function startRecording() {
+    state.isRecording = true;
+    state.recordingStartTime = new Date();
+
+    // Update UI
+    recordButton.textContent = "Stop Recording";
+    recordingStatus.style.display = "inline";
+
+    logMessage("Call recording started", "success");
+
+    // In a real implementation, you would start the actual recording here
+    // For this demo, we'll just simulate it
+  }
+
+  // Stop recording
+  function stopRecording() {
+    if (!state.isRecording) return;
+
+    const recordingEndTime = new Date();
+    const recordingDuration = Math.floor((recordingEndTime - state.recordingStartTime) / 1000); // in seconds
+
+    // Create recording object
+    const recording = {
+      id: uuidv4(),
+      callId: state.externalCallId,
+      startTime: state.recordingStartTime.toISOString(),
+      endTime: recordingEndTime.toISOString(),
+      duration: recordingDuration,
+      contact: state.currentContact ? {
+        id: state.currentContact.id,
+        name: `${state.currentContact.firstName} ${state.currentContact.lastName}`,
+        phone: state.currentContact.phone
+      } : null,
+      // In a real implementation, you would include the actual recording data or a URL
+      url: `recording_${Date.now()}.mp3` // Simulated URL
+    };
+
+    // Add to recordings array
+    state.recordings.push(recording);
+
+    // Reset recording state
+    state.isRecording = false;
+    state.recordingStartTime = null;
+
+    // Update UI
+    recordButton.textContent = "Start Recording";
+    recordingStatus.style.display = "none";
+
+    logMessage(`Call recording stopped (${formatDuration(recordingDuration)})`, "success");
+
+    // In a real implementation, you would stop the actual recording here
+    // For this demo, we'll just simulate it
+  }
+
+  // Recordings Functions
+
+  // Toggle recordings view
+  function toggleRecordings() {
+    const isVisible = recordingsContainer.style.display !== 'none';
+
+    if (isVisible) {
+      recordingsContainer.style.display = 'none';
+      recordingsButton.textContent = 'Show Recordings';
+      logMessage("Recordings hidden", "info");
+    } else {
+      updateRecordingsList();
+      recordingsContainer.style.display = 'block';
+      recordingsButton.textContent = 'Hide Recordings';
+      logMessage("Recordings displayed", "info");
+    }
+  }
+
+  // Update recordings list
+  function updateRecordingsList() {
+    // Clear the list
+    recordingsList.innerHTML = '';
+
+    if (state.recordings.length === 0) {
+      recordingsList.innerHTML = '<p>No recordings available.</p>';
+      return;
+    }
+
+    // Create a list of recordings
+    const recordingsTable = document.createElement('table');
+    recordingsTable.style.width = '100%';
+    recordingsTable.style.borderCollapse = 'collapse';
+
+    // Add table header
+    const tableHeader = document.createElement('thead');
+    tableHeader.innerHTML = `
+      <tr style="background-color: #f0f0f0; text-align: left;">
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Date/Time</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Contact</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Duration</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Actions</th>
+      </tr>
+    `;
+    recordingsTable.appendChild(tableHeader);
+
+    // Add table body
+    const tableBody = document.createElement('tbody');
+
+    state.recordings.forEach(recording => {
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid #ddd';
+
+      // Format date
+      const date = new Date(recording.startTime);
+      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+
+      // Format duration
+      const formattedDuration = formatDuration(recording.duration);
+
+      // Format contact name
+      const contactName = recording.contact ? recording.contact.name : 'Unknown';
+
+      // Create row cells
+      const dateCell = document.createElement('td');
+      dateCell.style.padding = '8px';
+      dateCell.textContent = formattedDate;
+
+      const contactCell = document.createElement('td');
+      contactCell.style.padding = '8px';
+      contactCell.textContent = contactName;
+
+      const durationCell = document.createElement('td');
+      durationCell.style.padding = '8px';
+      durationCell.textContent = formattedDuration;
+
+      const actionsCell = document.createElement('td');
+      actionsCell.style.padding = '8px';
+
+      // Create play button
+      const playButton = document.createElement('button');
+      playButton.className = 'primary-button success-button';
+      playButton.style.padding = '5px 10px';
+      playButton.style.fontSize = '12px';
+      playButton.textContent = 'Play';
+      playButton.onclick = () => {
+        playRecording(recording);
+      };
+
+      // Create download button
+      const downloadButton = document.createElement('button');
+      downloadButton.className = 'primary-button';
+      downloadButton.style.padding = '5px 10px';
+      downloadButton.style.fontSize = '12px';
+      downloadButton.style.marginLeft = '5px';
+      downloadButton.textContent = 'Download';
+      downloadButton.onclick = () => {
+        downloadRecording(recording);
+      };
+
+      // Add buttons to actions cell
+      actionsCell.appendChild(playButton);
+      actionsCell.appendChild(downloadButton);
+
+      // Add cells to row
+      row.appendChild(dateCell);
+      row.appendChild(contactCell);
+      row.appendChild(durationCell);
+      row.appendChild(actionsCell);
+
+      tableBody.appendChild(row);
+    });
+
+    recordingsTable.appendChild(tableBody);
+    recordingsList.appendChild(recordingsTable);
+  }
+
+  // Play recording
+  function playRecording(recording) {
+    logMessage(`Playing recording from ${new Date(recording.startTime).toLocaleString()}`, "info");
+
+    // In a real implementation, you would play the actual recording
+    // For this demo, we'll just simulate it with an alert
+    alert(`Playing recording: ${recording.url}\nDuration: ${formatDuration(recording.duration)}\nContact: ${recording.contact ? recording.contact.name : 'Unknown'}`);
+  }
+
+  // Download recording
+  function downloadRecording(recording) {
+    logMessage(`Downloading recording from ${new Date(recording.startTime).toLocaleString()}`, "info");
+
+    // In a real implementation, you would download the actual recording
+    // For this demo, we'll just simulate it with an alert
+    alert(`Downloading recording: ${recording.url}\nDuration: ${formatDuration(recording.duration)}\nContact: ${recording.contact ? recording.contact.name : 'Unknown'}`);
+  }
+
+  // Call History Functions
+
+  // Toggle call history view
+  function toggleCallHistory() {
+    const isVisible = callHistoryContainer.style.display !== 'none';
+
+    if (isVisible) {
+      callHistoryContainer.style.display = 'none';
+      logMessage("Call history hidden", "info");
+    } else {
+      updateCallHistoryList();
+      callHistoryContainer.style.display = 'block';
+      logMessage("Call history displayed", "info");
+    }
+  }
+
+  // Update call history list
+  function updateCallHistoryList() {
+    // Clear the list
+    callHistoryList.innerHTML = '';
+
+    if (state.callHistory.length === 0) {
+      callHistoryList.innerHTML = '<p>No call history available.</p>';
+      return;
+    }
+
+    // Create a list of calls
+    const historyTable = document.createElement('table');
+    historyTable.style.width = '100%';
+    historyTable.style.borderCollapse = 'collapse';
+
+    // Add table header
+    const tableHeader = document.createElement('thead');
+    tableHeader.innerHTML = `
+      <tr style="background-color: #f0f0f0; text-align: left;">
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Date/Time</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Contact</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Number</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Duration</th>
+        <th style="padding: 8px; border-bottom: 1px solid #ddd;">Notes</th>
+      </tr>
+    `;
+    historyTable.appendChild(tableHeader);
+
+    // Add table body
+    const tableBody = document.createElement('tbody');
+
+    state.callHistory.forEach(call => {
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid #ddd';
+
+      // Format date
+      const date = new Date(call.timestamp);
+      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+
+      // Format duration
+      const formattedDuration = formatDuration(call.duration);
+
+      // Format contact name
+      const contactName = call.contact ? call.contact.name : 'Unknown';
+
+      // Format phone number
+      const phoneNumber = call.toNumber || call.fromNumber || 'Unknown';
+
+      // Format notes (truncate if too long)
+      const notes = call.notes ?
+        (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
+        'No notes';
+
+      // Create row cells
+      row.innerHTML = `
+        <td style="padding: 8px;">${formattedDate}</td>
+        <td style="padding: 8px;">${contactName}</td>
+        <td style="padding: 8px;">${phoneNumber}</td>
+        <td style="padding: 8px;">${formattedDuration}</td>
+        <td style="padding: 8px;">${notes}</td>
+      `;
+
+      // Add click event to show full notes if available
+      if (call.notes) {
+        row.style.cursor = 'pointer';
+        row.title = 'Click to view full notes';
+        row.onclick = () => {
+          alert(`Call Notes:\n\n${call.notes}`);
+        };
+      }
+
+      tableBody.appendChild(row);
+    });
+
+    historyTable.appendChild(tableBody);
+    callHistoryList.appendChild(historyTable);
+  }
+
+  // Notes Modal Functions
+
+  // Open the notes modal
+  function openNotesModal() {
+    if (!state.callActive) {
+      logMessage("Cannot add notes: No active call", "error");
+      return;
+    }
+
+    // Set the textarea value to the current notes
+    callNotesTextarea.value = state.callNotes;
+
+    // Show the modal
+    notesModal.style.display = "block";
+
+    // Focus the textarea
+    callNotesTextarea.focus();
+
+    logMessage("Notes modal opened", "info");
+  }
+
+  // Close the notes modal
+  function closeNotesModal() {
+    notesModal.style.display = "none";
+    logMessage("Notes modal closed", "info");
+  }
+
+  // Save call notes
+  function saveCallNotes() {
+    const notes = callNotesTextarea.value.trim();
+
+    // Update the state
+    state.callNotes = notes;
+
+    // Close the modal
+    closeNotesModal();
+
+    if (notes) {
+      logMessage("Call notes saved", "success");
+    } else {
+      logMessage("Call notes cleared", "info");
+    }
+  }
+
+  // Contact search event listeners
+  searchButton.addEventListener("click", () => {
+    const searchTerm = contactSearchInput.value.trim();
+    if (searchTerm) {
+      logMessage(`Searching for contacts matching "${searchTerm}"...`, "info");
+      const results = searchContacts(searchTerm);
+      displaySearchResults(results);
+      logMessage(`Found ${results.length} matching contacts`, "success");
+    } else {
+      logMessage("Please enter a search term", "error");
+    }
+  });
+
+  // Handle Enter key in search input
+  contactSearchInput.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+      searchButton.click();
+    }
+  });
+
+  // Caller ID customization event listener
+  saveCallerIdButton.addEventListener("click", () => {
+    const newCallerId = callerIdInput.value.trim();
+
+    // Validate phone number format (basic validation)
+    if (!newCallerId || !newCallerId.match(/^\+[0-9]{10,15}$/)) {
+      logMessage("Please enter a valid phone number in international format (e.g., +12025550108)", "error");
+      return;
+    }
+
+    // Update the caller ID in state
+    state.fromNumber = newCallerId;
+
+    logMessage(`Caller ID updated to ${newCallerId}`, "success");
+  });
+
+  // Handle Enter key in caller ID input
+  callerIdInput.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+      saveCallerIdButton.click();
+    }
+  });
+
+  // Notes modal event listeners
+  addNotesButton.addEventListener("click", openNotesModal);
+  closeNotesModal.addEventListener("click", closeNotesModal);
+  saveNotesButton.addEventListener("click", saveCallNotes);
+
+  // Close modal when clicking outside of it
+  window.addEventListener("click", (event) => {
+    if (event.target === notesModal) {
+      closeNotesModal();
+    }
+  });
+
+  // Call history button event listener
+  historyButton.addEventListener("click", toggleCallHistory);
+
+  // Record button event listener
+  recordButton.addEventListener("click", toggleRecording);
+
+  // Recordings button event listener
+  recordingsButton.addEventListener("click", toggleRecordings);
 
   resizeButton.addEventListener("click", () => {
     cti.resizeWidget({
@@ -419,6 +1174,223 @@
       }
     }, 1000); // Simulate network delay
   });
+
+  // Call Management Functions
+
+  // Format seconds to HH:MM:SS
+  function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      secs.toString().padStart(2, '0')
+    ].join(':');
+  }
+
+  // Display contact information
+  function displayContactInfo(contact) {
+    if (!contact) {
+      // If no contact is provided, hide the contact info display
+      contactInfoDisplay.style.display = 'none';
+      return;
+    }
+
+    // Populate contact information
+    contactName.textContent = `${contact.firstName} ${contact.lastName}`;
+    contactCompany.textContent = contact.company || '-';
+    contactPhone.textContent = contact.phone || '-';
+    contactEmail.textContent = contact.email || '-';
+
+    // Show the contact info display
+    contactInfoDisplay.style.display = 'block';
+
+    logMessage(`Displaying contact information for ${contact.firstName} ${contact.lastName}`, "info");
+  }
+
+  // Start call timer
+  function startCallTimer() {
+    // Reset duration and set start time
+    state.callDuration = 0;
+    state.callStartTime = new Date();
+    state.callActive = true;
+
+    // Show call status container
+    document.getElementById('call-status-container').style.display = 'block';
+    document.getElementById('call-status-text').textContent = 'Call in progress';
+    document.getElementById('call-duration').textContent = '00:00:00';
+
+    // Enable call management buttons
+    enableButtons([
+      document.getElementById('mute-btn'),
+      document.getElementById('hold-btn'),
+      document.getElementById('transfer-btn'),
+      addNotesButton,
+      recordButton
+    ]);
+
+    // Display contact information if available
+    if (state.currentContact) {
+      displayContactInfo(state.currentContact);
+    } else {
+      // For incoming calls without contact info, create a basic contact object
+      const unknownContact = {
+        firstName: "Unknown",
+        lastName: "Caller",
+        phone: state.fromNumber,
+        email: "-",
+        company: "-"
+      };
+      displayContactInfo(unknownContact);
+    }
+
+    // Start timer to update duration
+    state.callTimer = setInterval(() => {
+      state.callDuration++;
+      document.getElementById('call-duration').textContent = formatDuration(state.callDuration);
+    }, 1000);
+
+    logMessage("Call timer started", "info");
+  }
+
+  // Stop call timer
+  function stopCallTimer() {
+    // Clear interval
+    if (state.callTimer) {
+      clearInterval(state.callTimer);
+      state.callTimer = null;
+    }
+
+    // Stop recording if active
+    if (state.isRecording) {
+      stopRecording();
+      logMessage("Recording stopped due to call end", "info");
+    }
+
+    // Save call to history if it was active
+    if (state.callActive) {
+      // Create call record
+      const callRecord = {
+        id: state.externalCallId,
+        timestamp: new Date().toISOString(),
+        duration: state.callDuration,
+        fromNumber: state.fromNumber,
+        toNumber: state.toNumber,
+        notes: state.callNotes,
+        contact: state.currentContact ? {
+          id: state.currentContact.id,
+          name: `${state.currentContact.firstName} ${state.currentContact.lastName}`,
+          company: state.currentContact.company,
+          phone: state.currentContact.phone,
+          email: state.currentContact.email
+        } : null
+      };
+
+      // Add to call history
+      state.callHistory.unshift(callRecord); // Add to beginning of array
+
+      // Limit history to 50 calls
+      if (state.callHistory.length > 50) {
+        state.callHistory.pop();
+      }
+
+      logMessage("Call saved to history", "success");
+
+      // In a real implementation, you would send this to HubSpot
+      // For this demo, we'll just log it
+      console.log("Call record:", callRecord);
+    }
+
+    // Reset call state
+    state.callActive = false;
+    state.callMuted = false;
+    state.callOnHold = false;
+    state.callNotes = ""; // Clear notes for next call
+
+    // Update UI
+    document.getElementById('call-status-text').textContent = 'Call ended';
+
+    // Disable call management buttons
+    disableButtons([
+      document.getElementById('mute-btn'),
+      document.getElementById('hold-btn'),
+      document.getElementById('transfer-btn'),
+      addNotesButton
+    ]);
+
+    // Reset button text
+    document.getElementById('mute-btn').textContent = 'Mute';
+    document.getElementById('hold-btn').textContent = 'Hold';
+
+    // Hide contact information
+    contactInfoDisplay.style.display = 'none';
+
+    // Hide call status container after a delay
+    setTimeout(() => {
+      document.getElementById('call-status-container').style.display = 'none';
+    }, 3000);
+
+    logMessage("Call timer stopped", "info");
+  }
+
+  // Toggle mute
+  function toggleMute() {
+    if (!state.callActive) return;
+
+    state.callMuted = !state.callMuted;
+    const muteButton = document.getElementById('mute-btn');
+
+    if (state.callMuted) {
+      muteButton.textContent = 'Unmute';
+      document.getElementById('call-status-text').textContent = 'Call muted';
+      logMessage("Call muted", "info");
+    } else {
+      muteButton.textContent = 'Mute';
+      document.getElementById('call-status-text').textContent = state.callOnHold ? 'Call on hold' : 'Call in progress';
+      logMessage("Call unmuted", "info");
+    }
+  }
+
+  // Toggle hold
+  function toggleHold() {
+    if (!state.callActive) return;
+
+    state.callOnHold = !state.callOnHold;
+    const holdButton = document.getElementById('hold-btn');
+
+    if (state.callOnHold) {
+      holdButton.textContent = 'Resume';
+      document.getElementById('call-status-text').textContent = 'Call on hold';
+      logMessage("Call placed on hold", "info");
+    } else {
+      holdButton.textContent = 'Hold';
+      document.getElementById('call-status-text').textContent = state.callMuted ? 'Call muted' : 'Call in progress';
+      logMessage("Call resumed", "info");
+    }
+  }
+
+  // Transfer call
+  function transferCall() {
+    if (!state.callActive) return;
+
+    // Show transfer dialog
+    const transferNumber = prompt("Enter number to transfer to:");
+
+    if (transferNumber && transferNumber.trim() !== '') {
+      logMessage(`Transferring call to ${transferNumber}...`, "info");
+
+      // In a real implementation, you would call the appropriate API
+      // For this demo, we'll just simulate a successful transfer
+
+      // End the current call
+      stopCallTimer();
+
+      // Show success message
+      logMessage(`Call transferred to ${transferNumber}`, "success");
+    }
+  }
 
   // Helpers to Enable and Disable Buttons
   function enableButtons(buttons) {
