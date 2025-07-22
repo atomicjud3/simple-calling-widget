@@ -128,7 +128,7 @@
   </div>
 </div>
 
-<script src="https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js"></script>
+<script src="https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js" id="hubspot-sdk"></script>
 <script src="https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js"></script>
 <script>
   // Initialize State
@@ -186,8 +186,53 @@
   }
 
   // Initialize Calling Extensions SDK
-  // Access the CallingExtensions constructor directly as shown in the documentation
-  const cti = new CallingExtensions({
+  // Try different ways to access the CallingExtensions constructor
+  let CallingExtensionsConstructor;
+
+  // Check for different possible ways the SDK might expose its functionality
+  if (typeof HubSpot !== 'undefined' && HubSpot.CallingExtensions) {
+    CallingExtensionsConstructor = HubSpot.CallingExtensions;
+    logMessage("Using HubSpot.CallingExtensions constructor", "success");
+  } else if (typeof window.HubSpot !== 'undefined' && window.HubSpot.CallingExtensions) {
+    CallingExtensionsConstructor = window.HubSpot.CallingExtensions;
+    logMessage("Using window.HubSpot.CallingExtensions constructor", "success");
+  } else if (typeof CallingExtensions !== 'undefined') {
+    CallingExtensionsConstructor = CallingExtensions;
+    logMessage("Using global CallingExtensions constructor", "success");
+  } else if (typeof window.CallingExtensions !== 'undefined') {
+    CallingExtensionsConstructor = window.CallingExtensions;
+    logMessage("Using window.CallingExtensions constructor", "success");
+  } else {
+    // Log error and update status
+    logMessage("CallingExtensions constructor not found", "error");
+    updateConnectionStatus("disconnected", "SDK initialization failed");
+
+    // Log available global objects for debugging
+    logMessage("Available global objects that might be related:", "info");
+    for (const key in window) {
+      if (key.includes('HubSpot') || key.includes('Calling') || key.includes('cti')) {
+        logMessage(`Found: ${key}`, "info");
+      }
+    }
+
+    // Create a dummy constructor to prevent errors
+    CallingExtensionsConstructor = function() {
+      this.initialized = function() {};
+      this.userLoggedIn = function() {};
+      this.userLoggedOut = function() {};
+      this.incomingCall = function() {};
+      this.outgoingCall = function() {};
+      this.callAnswered = function() {};
+      this.callEnded = function() {};
+      this.resizeWidget = function() {};
+      this.Constants = { callEndStatus: { INTERNAL_COMPLETED: 'completed' } };
+    };
+
+    logMessage("Created dummy constructor to prevent errors", "error");
+  }
+
+  // Create instance using the found constructor
+  const cti = new CallingExtensionsConstructor({
     debugMode: true, // Enables debugging logs as required in HubSpot_App_v2.md
     eventHandlers: {
       onReady: ({ portalId, userId, ownerId } = {}) => {

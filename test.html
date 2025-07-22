@@ -39,7 +39,7 @@
 
   <div class="log" id="log"></div>
 
-  <script src="https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js"></script>
+  <script src="https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js"></script>
   <script>
     // Function to log messages
     function log(message, type = 'info') {
@@ -60,15 +60,42 @@
       log('Testing SDK initialization...', 'info');
 
       try {
-        // Test if CallingExtensions is available
-        if (typeof CallingExtensions === 'undefined') {
-          throw new Error('CallingExtensions is not defined in the global scope');
+        // Check for different possible ways the SDK might expose its functionality
+        let CallingExtensionsConstructor;
+        let constructorSource = '';
+
+        if (typeof HubSpot !== 'undefined' && HubSpot.CallingExtensions) {
+          CallingExtensionsConstructor = HubSpot.CallingExtensions;
+          constructorSource = 'HubSpot.CallingExtensions';
+          log('Found constructor at HubSpot.CallingExtensions', 'success');
+        } else if (typeof window.HubSpot !== 'undefined' && window.HubSpot.CallingExtensions) {
+          CallingExtensionsConstructor = window.HubSpot.CallingExtensions;
+          constructorSource = 'window.HubSpot.CallingExtensions';
+          log('Found constructor at window.HubSpot.CallingExtensions', 'success');
+        } else if (typeof CallingExtensions !== 'undefined') {
+          CallingExtensionsConstructor = CallingExtensions;
+          constructorSource = 'global CallingExtensions';
+          log('Found constructor as global CallingExtensions', 'success');
+        } else if (typeof window.CallingExtensions !== 'undefined') {
+          CallingExtensionsConstructor = window.CallingExtensions;
+          constructorSource = 'window.CallingExtensions';
+          log('Found constructor at window.CallingExtensions', 'success');
+        } else {
+          // Log available global objects for debugging
+          log('CallingExtensions constructor not found in any expected location', 'error');
+          log('Available global objects that might be related:', 'info');
+          for (const key in window) {
+            if (key.includes('HubSpot') || key.includes('Calling') || key.includes('cti')) {
+              log(`Found: ${key}`, 'info');
+            }
+          }
+          throw new Error('CallingExtensions constructor not found');
         }
 
-        log('CallingExtensions is defined in the global scope', 'success');
+        log(`Using ${constructorSource} constructor`, 'success');
 
         // Try to initialize the SDK
-        const cti = new CallingExtensions({
+        const cti = new CallingExtensionsConstructor({
           debugMode: true,
           eventHandlers: {
             onReady: (data) => {
