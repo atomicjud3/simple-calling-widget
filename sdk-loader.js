@@ -33,19 +33,51 @@ function loadSDK() {
       return;
     }
 
+    // Use the original URL instead of the redirected one
+    const primaryUrl = "https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js";
+    // Keep the old URL as a fallback
+    const fallbackUrl = "https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js";
+
+    // Try loading with the primary URL first
+    tryLoadScript(primaryUrl)
+      .then(() => {
+        logMessage("HubSpot SDK script loaded successfully with primary URL", "success");
+        sdkLoaded = true;
+        resolve();
+      })
+      .catch((error) => {
+        logMessage(`Failed to load SDK with primary URL: ${error.message}. Trying fallback URL...`, "error");
+
+        // If primary URL fails, try the fallback
+        tryLoadScript(fallbackUrl)
+          .then(() => {
+            logMessage("HubSpot SDK script loaded successfully with fallback URL", "success");
+            sdkLoaded = true;
+            resolve();
+          })
+          .catch((fallbackError) => {
+            logMessage(`Failed to load SDK with fallback URL: ${fallbackError.message}`, "error");
+            reject(new Error("Failed to load HubSpot SDK script with both primary and fallback URLs"));
+          });
+      });
+  });
+}
+
+// Helper function to try loading a script with a specific URL
+function tryLoadScript(url) {
+  return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = "https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js";
+    script.src = url;
     script.id = "hubspot-sdk";
 
     script.onload = () => {
-      console.log("[SDK-LOADER] HubSpot SDK script loaded successfully");
-      sdkLoaded = true;
+      console.log(`[SDK-LOADER] HubSpot SDK script loaded successfully from ${url}`);
       resolve();
     };
 
     script.onerror = (error) => {
-      console.error("[SDK-LOADER] Error loading HubSpot SDK script:", error);
-      reject(new Error("Failed to load HubSpot SDK script"));
+      console.error(`[SDK-LOADER] Error loading HubSpot SDK script from ${url}:`, error);
+      reject(new Error(`Failed to load HubSpot SDK script from ${url}`));
     };
 
     document.head.appendChild(script);
@@ -185,5 +217,6 @@ window.HubSpotSDKLoader = {
   initializeSDK,
   detectConstructor,
   createDummyConstructor,
-  logAvailableObjects
+  logAvailableObjects,
+  tryLoadScript
 };
