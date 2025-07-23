@@ -12,6 +12,10 @@ The widget properly initializes the HubSpot Calling Extensions SDK and registers
 - Event handlers are registered for key events like `onReady`, `onDialNumber`, and others
 - The widget handles both inbound and outbound calls
 - Engagements are automatically created in HubSpot for each call
+- Detailed console logging is implemented before and after initialization as well as for all events:
+  - Pre-initialization logs provide context about the SDK loading process
+  - Post-initialization logs confirm successful SDK initialization and CTI instance creation
+  - Event logs capture all interactions with the HubSpot Calling Extensions SDK, including ready state, dial events, call status changes, and engagement creation
 
 ### Debug and Refine the Flow
 
