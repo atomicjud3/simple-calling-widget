@@ -411,22 +411,42 @@
         },
         onDialNumber: (data) => {
           logMessage(`Dialing number: ${data.phoneNumber}`, "info");
-          state.toNumber = data.phoneNumber;
+
+          // Format the phone number to ensure it's in E.164 format
+          let phoneNumber = data.phoneNumber;
+
+          // Basic validation and formatting for phone numbers
+          // Remove any non-digit characters except the leading +
+          phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+
+          // Ensure it starts with a + if it doesn't already
+          if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+          }
+
+          logMessage(`Formatted phone number: ${phoneNumber}`, "info");
+          state.toNumber = phoneNumber;
 
           // Handle outbound call as mentioned in "Debug and Refine the Flow" section
           const externalCallId = uuidv4();
           state.externalCallId = externalCallId;
 
-          // Start the outbound call
-          cti.outgoingCall({
-            externalCallId: externalCallId,
-            createEngagement: true, // Create engagement in HubSpot as required
-            fromNumber: state.fromNumber,
-            toNumber: data.phoneNumber,
-          });
+          try {
+            // Start the outbound call with proper error handling
+            cti.outgoingCall({
+              externalCallId: externalCallId,
+              createEngagement: true, // Create engagement in HubSpot as required
+              fromNumber: state.fromNumber,
+              toNumber: phoneNumber, // Use the formatted phone number
+            });
 
-          logMessage(`Outbound call initiated to: ${data.phoneNumber}`, "success");
-          enableButtons([endButton]);
+            logMessage(`Outbound call initiated to: ${phoneNumber}`, "success");
+            enableButtons([endButton]);
+          } catch (error) {
+            logMessage(`Error initiating outbound call: ${error.message || 'Unknown error'}`, "error");
+            // Handle the error gracefully
+            updateConnectionStatus("connected", "Call initiation failed, but connection is still active");
+          }
         },
         // Add additional event handlers as specified in "Debug and Refine the Flow" section
         onEngagementCreated: (data) => {

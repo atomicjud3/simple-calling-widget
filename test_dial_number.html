@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Dial Number</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    h1 {
+      color: #333;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin-bottom: 5px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+    .info {
+      color: #0066cc;
+    }
+    .success {
+      color: #28a745;
+    }
+    .error {
+      color: #dc3545;
+    }
+    .warning {
+      color: #ffc107;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Test Dial Number Functionality</h1>
+    <p>This page tests the phone number formatting and validation logic from the main application.</p>
+
+    <div class="input-group">
+      <label for="phoneNumber">Enter Phone Number:</label>
+      <input type="text" id="phoneNumber" placeholder="e.g. +61423662930 or 61423662930">
+    </div>
+
+    <button id="testFormat">Test Format Only</button>
+    <button id="testDial">Simulate Dial</button>
+
+    <div class="log" id="log">
+      <div class="log-entry info">Test log initialized. Enter a phone number and click a button to test.</div>
+    </div>
+  </div>
+
+  <script>
+    // Mock state object
+    const state = {
+      toNumber: null,
+      fromNumber: "+6137105000",
+      externalCallId: null
+    };
+
+    // Mock functions
+    function logMessage(message, type = "info") {
+      console.log(`[DEBUG_LOG] ${message}`);
+
+      const log = document.getElementById("log");
+      const entry = document.createElement("div");
+      entry.className = `log-entry ${type}`;
+      entry.textContent = message;
+      log.appendChild(entry);
+
+      // Auto-scroll to bottom
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function updateConnectionStatus(status, message) {
+      logMessage(`Connection status: ${status} - ${message}`, "info");
+    }
+
+    function enableButtons(buttons) {
+      logMessage("Enabled end call button", "info");
+    }
+
+    // Mock CTI object
+    const cti = {
+      outgoingCall: function(params) {
+        logMessage(`CTI outgoingCall called with params: ${JSON.stringify(params)}`, "info");
+
+        // Simulate API call
+        setTimeout(() => {
+          // Check if the phone number is properly formatted
+          const phoneNumber = params.toNumber;
+
+          if (!phoneNumber.startsWith('+')) {
+            logMessage("Error: Phone number must start with +", "error");
+            throw new Error("Phone number must start with +");
+          }
+
+          if (!/^\+\d+$/.test(phoneNumber)) {
+            logMessage("Error: Phone number contains invalid characters", "error");
+            throw new Error("Phone number contains invalid characters");
+          }
+
+          // Simulate successful call
+          logMessage("Simulated API call successful", "success");
+
+          // In a real scenario, this would trigger the appropriate callback
+        }, 500);
+      }
+    };
+
+    // Generate mock UUID
+    function uuidv4() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // Phone number formatting function (copied from the main application)
+    function formatPhoneNumber(rawNumber) {
+      // Format the phone number to ensure it's in E.164 format
+      let phoneNumber = rawNumber;
+
+      // Basic validation and formatting for phone numbers
+      // Remove any non-digit characters except the leading +
+      phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+
+      // Ensure it starts with a + if it doesn't already
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = '+' + phoneNumber;
+      }
+
+      return phoneNumber;
+    }
+
+    // Test format button
+    document.getElementById("testFormat").addEventListener("click", function() {
+      const rawNumber = document.getElementById("phoneNumber").value;
+      logMessage(`Raw phone number: ${rawNumber}`, "info");
+
+      try {
+        const formattedNumber = formatPhoneNumber(rawNumber);
+        logMessage(`Formatted phone number: ${formattedNumber}`, "success");
+      } catch (error) {
+        logMessage(`Error formatting phone number: ${error.message}`, "error");
+      }
+    });
+
+    // Test dial button
+    document.getElementById("testDial").addEventListener("click", function() {
+      const rawNumber = document.getElementById("phoneNumber").value;
+
+      // Simulate the onDialNumber handler
+      logMessage(`Dialing number: ${rawNumber}`, "info");
+
+      try {
+        // Format the phone number
+        const phoneNumber = formatPhoneNumber(rawNumber);
+        logMessage(`Formatted phone number: ${phoneNumber}`, "info");
+        state.toNumber = phoneNumber;
+
+        // Generate call ID
+        const externalCallId = uuidv4();
+        state.externalCallId = externalCallId;
+        logMessage(`Generated call ID: ${externalCallId}`, "info");
+
+        // Simulate outgoing call
+        try {
+          cti.outgoingCall({
+            externalCallId: externalCallId,
+            createEngagement: true,
+            fromNumber: state.fromNumber,
+            toNumber: phoneNumber,
+          });
+
+          logMessage(`Outbound call initiated to: ${phoneNumber}`, "success");
+          enableButtons(["endButton"]);
+        } catch (error) {
+          logMessage(`Error initiating outbound call: ${error.message || 'Unknown error'}`, "error");
+          updateConnectionStatus("connected", "Call initiation failed, but connection is still active");
+        }
+      } catch (error) {
+        logMessage(`Error in dial process: ${error.message}`, "error");
+      }
+    });
+
+    // Test with some sample phone numbers
+    const sampleNumbers = [
+      "+61423662930",  // Original number from error log
+      "61423662930",   // Without +
+      "+61 423 662 930", // With spaces
+      "+61-423-662-930", // With dashes
+      "+61(423)662930",  // With parentheses
+      "423662930"      // Local number without country code
+    ];
+
+    // Add sample numbers to the log
+    logMessage("Sample phone numbers to test:", "info");
+    sampleNumbers.forEach(number => {
+      logMessage(`- ${number}`, "info");
+    });
+  </script>
+</body>
+</html>

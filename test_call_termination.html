@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Termination Error Handling Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 20px;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      font-family: monospace;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .warning {
+      color: orange;
+    }
+    .info {
+      color: blue;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .primary {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    .danger {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Call Termination Error Handling Test</h1>
+  <p>This page tests the error handling for 404 errors from the terminate endpoint.</p>
+
+  <div>
+    <button id="simulate-call-btn" class="primary">Simulate Call</button>
+    <button id="end-call-btn" class="danger" disabled>End Call</button>
+    <button id="clear-log-btn">Clear Log</button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    // Global unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', function(event) {
+      // Check if it's a 404 error from the terminate endpoint
+      const error = event.reason;
+      if (error && error.message && error.message.includes('404') &&
+          error.message.includes('terminate')) {
+        log('Caught unhandled promise rejection: Call termination API endpoint returned 404', 'warning');
+        log('This may be due to API changes in HubSpot. The call has been ended locally.', 'info');
+
+        // Prevent the default browser handling of the error
+        event.preventDefault();
+      } else {
+        log('Caught unhandled promise rejection: ' + (error ? error.message : 'Unknown error'), 'error');
+      }
+    });
+
+    // Mock CTI object
+    const mockCTI = {
+      callEnded: function(params) {
+        log(`Mock CTI: Ending call with ID ${params.externalCallId}`, 'info');
+
+        // Return a promise that rejects with a 404 error after a short delay
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            // Simulate the 404 error from the terminate endpoint
+            reject(new Error('Request for https://app-ap1.hubspot.com/api/calling/extensions/v1/call-lifecycle/terminate failed with status 404.'));
+          }, 500);
+        });
+      }
+    };
+
+    // State
+    let state = {
+      callActive: false,
+      externalCallId: null
+    };
+
+    // Logging function
+    function log(message, type = 'info') {
+      console.log(`[${type.toUpperCase()}] ${message}`);
+
+      const logElement = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logElement.appendChild(entry);
+
+      // Auto-scroll to bottom
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    // Simulate call button
+    document.getElementById('simulate-call-btn').addEventListener('click', function() {
+      log('Simulating a call...', 'info');
+
+      // Generate a random call ID
+      state.externalCallId = 'call-' + Math.random().toString(36).substring(2, 15);
+      state.callActive = true;
+
+      log(`Call started with ID: ${state.externalCallId}`, 'success');
+
+      // Enable end call button
+      document.getElementById('end-call-btn').disabled = false;
+      document.getElementById('simulate-call-btn').disabled = true;
+    });
+
+    // End call button with error handling
+    document.getElementById('end-call-btn').addEventListener('click', function() {
+      if (!state.callActive) {
+        log('No active call to end', 'error');
+        return;
+      }
+
+      log('Ending call...', 'info');
+
+      // Call the callEnded method with error handling
+      try {
+        const callEndPromise = mockCTI.callEnded({
+          externalCallId: state.externalCallId,
+          callEndStatus: 'COMPLETED'
+        });
+
+        // Add error handling for the promise
+        if (callEndPromise && typeof callEndPromise.catch === 'function') {
+          callEndPromise.catch(error => {
+            // Check if it's a 404 error from the terminate endpoint
+            if (error && error.message && error.message.includes('404') &&
+                error.message.includes('terminate')) {
+              log("Warning: Call termination API endpoint returned 404. This may be due to API changes.", "warning");
+              log("The call has been ended locally, but HubSpot may not have been notified properly.", "warning");
+              log("This won't affect your ability to make or receive calls.", "info");
+            } else {
+              log(`Error ending call: ${error.message || 'Unknown error'}`, "error");
+            }
+          });
+        }
+      } catch (error) {
+        log(`Error calling callEnded method: ${error.message || 'Unknown error'}`, "error");
+      }
+
+      log("Call ended locally", "info");
+
+      // Reset state
+      state.callActive = false;
+
+      // Update buttons
+      document.getElementById('end-call-btn').disabled = true;
+      document.getElementById('simulate-call-btn').disabled = false;
+    });
+
+    // Clear log button
+    document.getElementById('clear-log-btn').addEventListener('click', function() {
+      document.getElementById('log').innerHTML = '';
+      log('Log cleared', 'info');
+    });
+
+    // Initial log message
+    log('Test page loaded. Click "Simulate Call" to start a test call.', 'info');
+    log('When you click "End Call", a 404 error will be simulated from the terminate endpoint.', 'info');
+    log('The error should be handled gracefully without any unhandled promise rejections.', 'info');
+  </script>
+</body>
+</html>
