@@ -321,7 +321,8 @@
   };
 
   // Debug logging function as specified in "Debug and Refine the Flow" section
-  function logMessage(message, type = "info") {
+  // logMessage function is already declared in sdk-loader.js
+  logMessage = function(message, type = "info") {
     console.log(`[DEBUG_LOG] ${message}`);
 
     // Add to UI debug log
@@ -336,7 +337,8 @@
   }
 
   // Update connection status UI
-  function updateConnectionStatus(status, message) {
+  // updateConnectionStatus function is already declared in sdk-loader.js
+  updateConnectionStatus = function(status, message) {
     const statusIndicator = document.getElementById("connection-status");
     const statusText = document.getElementById("status-text");
     const portalIdElement = document.getElementById("portal-id");
