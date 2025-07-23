@@ -443,6 +443,11 @@
         onCallCompleted: (data) => {
           logMessage(`Call completed: ${JSON.stringify(data)}`, "success");
         },
+        // Add handler for CREATE_ENGAGEMENT_SUCCEEDED event
+        onCreateEngagementSucceeded: (data) => {
+          logMessage(`Engagement creation succeeded: ${JSON.stringify(data)}`, "success");
+          // You can add additional logic here if needed
+        },
       },
     }
   };
@@ -455,6 +460,15 @@
     if (CallingExtensions) {
       // Create the CTI instance directly
       cti = new CallingExtensions(sdkOptions.ctiOptions);
+
+      // Ensure Constants is properly initialized
+      if (window.Constants) {
+        cti.Constants = window.Constants;
+        logMessage("Constants initialized successfully", "success");
+      } else {
+        logMessage("Constants not found in window, some features may not work correctly", "warning");
+      }
+
       logMessage("SDK initialized successfully using direct initialization", "success");
     } else {
       // If direct initialization fails, fall back to the SDK Loader
@@ -479,6 +493,13 @@
       .then(ctiInstance => {
         // Store the cti instance for use throughout the code
         cti = ctiInstance;
+
+        // Double-check Constants initialization in fallback path
+        if (!cti.Constants && window.Constants) {
+          cti.Constants = window.Constants;
+          logMessage("Constants initialized in fallback path", "success");
+        }
+
         logMessage("SDK initialized successfully using SDK Loader", "success");
       })
       .catch(fallbackError => {
@@ -705,9 +726,14 @@
   });
 
   endButton.addEventListener("click", () => {
+    // Define a fallback value for callEndStatus if cti.Constants is undefined
+    const callEndStatus = cti.Constants && cti.Constants.callEndStatus
+      ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
+      : "COMPLETED"; // Fallback value if Constants is undefined
+
     cti.callEnded({
       externalCallId: state.externalCallId,
-      callEndStatus: cti.Constants.callEndStatus.INTERNAL_COMPLETED,
+      callEndStatus: callEndStatus,
     });
     logMessage("Call ended", "info");
     logMessage("Verifying engagement creation in HubSpot...", "info");
