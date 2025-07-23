@@ -259,11 +259,26 @@
 </div>
 
 <!-- Load the HubSpot Calling Extensions SDK directly like the demo -->
-<script src="https://cdn.jsdelivr.net/npm/@hubspot/calling-extensions-sdk@latest/dist/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@hubspot/calling-extensions-sdk@0.9.3-beta.0/dist/main.js"></script>
 <!-- Load the SDK loader for fallback support and UUID library -->
 <script src="sdk-loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js"></script>
 <script>
+  // Global unhandled promise rejection handler
+  window.addEventListener('unhandledrejection', function(event) {
+    // Check if it's a 404 error from the terminate endpoint
+    const error = event.reason;
+    if (error && error.message && error.message.includes('404') &&
+        error.message.includes('terminate')) {
+      console.log('[DEBUG_LOG] Caught unhandled promise rejection: Call termination API endpoint returned 404');
+      console.log('[DEBUG_LOG] This may be due to API changes in HubSpot. The call has been ended locally.');
+
+      // Prevent the default browser handling of the error
+      event.preventDefault();
+    } else {
+      console.log('[DEBUG_LOG] Caught unhandled promise rejection:', error);
+    }
+  });
   // Initialize State
   const state = {
     userId: null,
@@ -604,10 +619,31 @@
       ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
       : "COMPLETED"; // Fallback value if Constants is undefined
 
-    cti.callEnded({
-      externalCallId: state.externalCallId,
-      callEndStatus: callEndStatus,
-    });
+    // Call the callEnded method with error handling
+    try {
+      const callEndPromise = cti.callEnded({
+        externalCallId: state.externalCallId,
+        callEndStatus: callEndStatus,
+      });
+
+      // Add error handling for the promise
+      if (callEndPromise && typeof callEndPromise.catch === 'function') {
+        callEndPromise.catch(error => {
+          // Check if it's a 404 error from the terminate endpoint
+          if (error && error.message && error.message.includes('404') &&
+              error.message.includes('terminate')) {
+            logMessage("Warning: Call termination API endpoint returned 404. This may be due to API changes.", "warning");
+            logMessage("The call has been ended locally, but HubSpot may not have been notified properly.", "warning");
+            logMessage("This won't affect your ability to make or receive calls.", "info");
+          } else {
+            logMessage(`Error ending call: ${error.message || 'Unknown error'}`, "error");
+          }
+        });
+      }
+    } catch (error) {
+      logMessage(`Error calling callEnded method: ${error.message || 'Unknown error'}`, "error");
+    }
+
     logMessage("Call ended", "info");
     logMessage("Verifying engagement creation in HubSpot...", "info");
     disableButtons([endButton]);
