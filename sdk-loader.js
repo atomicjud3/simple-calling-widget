@@ -1,8 +1,8 @@
 /**
  * HubSpot Calling Extensions SDK Loader
  *
- * This script handles the dynamic loading and initialization of the HubSpot Calling Extensions SDK.
- * It ensures the SDK is fully loaded before attempting to use it, and provides robust constructor detection.
+ * This script handles the loading and initialization of the HubSpot Calling Extensions SDK.
+ * It follows the approach used in the demo-minimal-js example while maintaining fallback options.
  */
 
 // Function to log messages (will be replaced by the actual logging function from index.html)
@@ -16,130 +16,7 @@ let updateConnectionStatus = function(status, message) {
 };
 
 // Global variables
-let CallingExtensionsConstructor = null;
 let cti = null;
-let sdkLoaded = false;
-let initializationAttempted = false;
-
-/**
- * Dynamically loads the HubSpot Calling Extensions SDK
- * @returns {Promise} A promise that resolves when the SDK is loaded
- */
-function loadSDK() {
-  return new Promise((resolve, reject) => {
-    // Check if SDK is already loaded
-    if (sdkLoaded) {
-      resolve();
-      return;
-    }
-
-    // Use the original URL instead of the redirected one
-    const primaryUrl = "https://static.hubspot.com/calling-extensions-sdk/1.0/sdk.min.js";
-    // Keep the old URL as a fallback
-    const fallbackUrl = "https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js";
-
-    // Try loading with the primary URL first
-    tryLoadScript(primaryUrl)
-      .then(() => {
-        logMessage("HubSpot SDK script loaded successfully with primary URL", "success");
-        sdkLoaded = true;
-        resolve();
-      })
-      .catch((error) => {
-        logMessage(`Failed to load SDK with primary URL: ${error.message}. Trying fallback URL...`, "error");
-
-        // If primary URL fails, try the fallback
-        tryLoadScript(fallbackUrl)
-          .then(() => {
-            logMessage("HubSpot SDK script loaded successfully with fallback URL", "success");
-            sdkLoaded = true;
-            resolve();
-          })
-          .catch((fallbackError) => {
-            logMessage(`Failed to load SDK with fallback URL: ${fallbackError.message}`, "error");
-            reject(new Error("Failed to load HubSpot SDK script with both primary and fallback URLs"));
-          });
-      });
-  });
-}
-
-// Helper function to try loading a script with a specific URL
-function tryLoadScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = url;
-    script.id = "hubspot-sdk";
-
-    script.onload = () => {
-      console.log(`[SDK-LOADER] HubSpot SDK script loaded successfully from ${url}`);
-      resolve();
-    };
-
-    script.onerror = (error) => {
-      console.error(`[SDK-LOADER] Error loading HubSpot SDK script from ${url}:`, error);
-      reject(new Error(`Failed to load HubSpot SDK script from ${url}`));
-    };
-
-    document.head.appendChild(script);
-  });
-}
-
-/**
- * Detects the CallingExtensions constructor from various possible locations
- * @returns {Object} An object containing the constructor and its source
- */
-function detectConstructor() {
-  let constructor = null;
-  let source = "";
-
-  // Check for different possible ways the SDK might expose its functionality
-  if (typeof HubSpot !== 'undefined' && HubSpot.CallingExtensions) {
-    constructor = HubSpot.CallingExtensions;
-    source = "HubSpot.CallingExtensions";
-  } else if (typeof window.HubSpot !== 'undefined' && window.HubSpot.CallingExtensions) {
-    constructor = window.HubSpot.CallingExtensions;
-    source = "window.HubSpot.CallingExtensions";
-  } else if (typeof CallingExtensions !== 'undefined') {
-    constructor = CallingExtensions;
-    source = "global CallingExtensions";
-  } else if (typeof window.CallingExtensions !== 'undefined') {
-    constructor = window.CallingExtensions;
-    source = "window.CallingExtensions";
-  }
-
-  return { constructor, source };
-}
-
-/**
- * Creates a dummy constructor to prevent errors when the real constructor is not found
- * @returns {Function} A dummy constructor with all required methods
- */
-function createDummyConstructor() {
-  return function() {
-    this.initialized = function() {};
-    this.userLoggedIn = function() {};
-    this.userLoggedOut = function() {};
-    this.incomingCall = function() {};
-    this.outgoingCall = function() {};
-    this.callAnswered = function() {};
-    this.callEnded = function() {};
-    this.resizeWidget = function() {};
-    this.Constants = { callEndStatus: { INTERNAL_COMPLETED: 'completed' } };
-  };
-}
-
-/**
- * Logs available global objects that might be related to the SDK
- */
-function logAvailableObjects() {
-  logMessage("Available global objects that might be related:", "info");
-  for (const key in window) {
-    if (key.includes('HubSpot') || key.includes('Calling') || key.includes('cti') ||
-        key.includes('selection') || key.includes('rejection') || key.includes('Selection')) {
-      logMessage(`Found: ${key}`, "info");
-    }
-  }
-}
 
 /**
  * Initializes the SDK and creates a cti instance
@@ -157,66 +34,60 @@ function initializeSDK(options) {
   }
 
   return new Promise((resolve, reject) => {
-    // Prevent multiple initialization attempts
-    if (initializationAttempted && cti) {
+    try {
+      logMessage("Starting SDK initialization...", "info");
+
+      // Following the demo approach, access the SDK via window.default
+      const CallingExtensions = window.default;
+
+      if (!CallingExtensions) {
+        throw new Error("CallingExtensions constructor not found. Make sure the SDK script is loaded.");
+      }
+
+      // Create the cti instance
+      cti = new CallingExtensions(options.ctiOptions || {});
+
+      // Access constants from window.Constants like in the demo
+      cti.Constants = window.Constants;
+
+      logMessage("CTI instance created successfully", "success");
+      updateConnectionStatus("connected", "SDK initialized successfully");
+
       resolve(cti);
-      return;
+    } catch (error) {
+      logMessage(`Error initializing SDK: ${error.message}`, "error");
+      updateConnectionStatus("disconnected", "Failed to initialize SDK");
+
+      // Try fallback approach
+      logMessage("Attempting fallback initialization...", "warning");
+
+      try {
+        // Try alternative ways to access the SDK
+        const alternativeConstructors = [
+          window.HubSpot && window.HubSpot.CallingExtensions,
+          window.CallingExtensions,
+          window.hubspot && window.hubspot.callingExtensions
+        ];
+
+        const Constructor = alternativeConstructors.find(c => c);
+
+        if (Constructor) {
+          logMessage("Found alternative constructor", "success");
+          cti = new Constructor(options.ctiOptions || {});
+          updateConnectionStatus("connected", "SDK initialized with fallback");
+          resolve(cti);
+        } else {
+          throw new Error("No valid constructor found");
+        }
+      } catch (fallbackError) {
+        logMessage(`Fallback initialization failed: ${fallbackError.message}`, "error");
+        reject(error); // Reject with the original error
+      }
     }
-
-    initializationAttempted = true;
-    logMessage("Starting SDK initialization with dynamic loading...", "info");
-
-    // First, load the SDK script
-    loadSDK()
-      .then(() => {
-        logMessage("SDK script loaded, checking for constructor...", "info");
-
-        // Wait a moment to ensure script is fully processed
-        setTimeout(() => {
-          // Try to detect the constructor
-          const { constructor, source } = detectConstructor();
-
-          if (constructor) {
-            logMessage(`Found constructor at ${source}`, "success");
-            CallingExtensionsConstructor = constructor;
-            updateConnectionStatus("connected", "SDK loaded successfully");
-          } else {
-            logMessage("CallingExtensions constructor not found", "error");
-            updateConnectionStatus("disconnected", "SDK initialization failed");
-
-            // Log available global objects for debugging
-            logAvailableObjects();
-
-            // Create a dummy constructor to prevent errors
-            CallingExtensionsConstructor = createDummyConstructor();
-            logMessage("Created dummy constructor to prevent errors", "error");
-          }
-
-          // Create the cti instance
-          try {
-            cti = new CallingExtensionsConstructor(options.ctiOptions || {});
-            logMessage("CTI instance created successfully", "success");
-            resolve(cti);
-          } catch (error) {
-            logMessage(`Error creating CTI instance: ${error.message}`, "error");
-            reject(error);
-          }
-        }, 500); // Give the browser 500ms to process the script
-      })
-      .catch(error => {
-        logMessage(`Failed to load SDK: ${error.message}`, "error");
-        updateConnectionStatus("disconnected", "Failed to load SDK");
-        reject(error);
-      });
   });
 }
 
 // Export the functions
 window.HubSpotSDKLoader = {
-  loadSDK,
-  initializeSDK,
-  detectConstructor,
-  createDummyConstructor,
-  logAvailableObjects,
-  tryLoadScript
+  initializeSDK
 };

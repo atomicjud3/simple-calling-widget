@@ -29,18 +29,48 @@
     .info {
       color: blue;
     }
+    .warning {
+      color: orange;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .primary {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    .secondary {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+    }
   </style>
 </head>
 <body>
   <h1>HubSpot Calling Widget Test</h1>
-  <p>This page tests the initialization of the HubSpot Calling Extensions SDK.</p>
+  <p>This page tests the initialization of the HubSpot Calling Extensions SDK using the updated approach.</p>
 
-  <button id="test-btn">Test SDK Initialization</button>
+  <div>
+    <button id="test-direct-btn" class="primary">Test Direct Initialization</button>
+    <button id="test-loader-btn" class="secondary">Test SDK Loader Fallback</button>
+    <button id="clear-log-btn">Clear Log</button>
+  </div>
 
   <div class="log" id="log"></div>
 
-  <script src="https://static.hsappstatic.net/static-hubspot-com/static-1.270519761/calling-extensions-sdk/1.0/sdk.min.js"></script>
+  <!-- Load the SDK directly like in the demo -->
+  <script src="https://cdn.jsdelivr.net/npm/@hubspot/calling-extensions-sdk@latest/dist/main.js"></script>
+  <!-- Load our SDK loader for fallback support -->
+  <script src="sdk-loader.js"></script>
+
   <script>
+    // Global variables
+    let cti = null;
+
     // Function to log messages
     function log(message, type = 'info') {
       console.log(`[${type.toUpperCase()}] ${message}`);
@@ -55,51 +85,38 @@
       logElement.scrollTop = logElement.scrollHeight;
     }
 
-    // Test button click handler
-    document.getElementById('test-btn').addEventListener('click', function() {
-      log('Testing SDK initialization...', 'info');
+    // Function to update connection status (for SDK loader)
+    function updateConnectionStatus(status, message) {
+      log(`Connection status: ${status}, Message: ${message}`, status === 'connected' ? 'success' : status === 'disconnected' ? 'error' : 'info');
+    }
+
+    // Test direct initialization
+    document.getElementById('test-direct-btn').addEventListener('click', function() {
+      log('Testing direct SDK initialization (demo approach)...', 'info');
 
       try {
-        // Check for different possible ways the SDK might expose its functionality
-        let CallingExtensionsConstructor;
-        let constructorSource = '';
+        // Access the SDK via window.default like in the demo
+        const CallingExtensions = window.default;
 
-        if (typeof HubSpot !== 'undefined' && HubSpot.CallingExtensions) {
-          CallingExtensionsConstructor = HubSpot.CallingExtensions;
-          constructorSource = 'HubSpot.CallingExtensions';
-          log('Found constructor at HubSpot.CallingExtensions', 'success');
-        } else if (typeof window.HubSpot !== 'undefined' && window.HubSpot.CallingExtensions) {
-          CallingExtensionsConstructor = window.HubSpot.CallingExtensions;
-          constructorSource = 'window.HubSpot.CallingExtensions';
-          log('Found constructor at window.HubSpot.CallingExtensions', 'success');
-        } else if (typeof CallingExtensions !== 'undefined') {
-          CallingExtensionsConstructor = CallingExtensions;
-          constructorSource = 'global CallingExtensions';
-          log('Found constructor as global CallingExtensions', 'success');
-        } else if (typeof window.CallingExtensions !== 'undefined') {
-          CallingExtensionsConstructor = window.CallingExtensions;
-          constructorSource = 'window.CallingExtensions';
-          log('Found constructor at window.CallingExtensions', 'success');
-        } else {
-          // Log available global objects for debugging
-          log('CallingExtensions constructor not found in any expected location', 'error');
-          log('Available global objects that might be related:', 'info');
+        if (!CallingExtensions) {
+          log('window.default is not defined. Direct initialization failed.', 'error');
+          log('Available global objects:', 'info');
           for (const key in window) {
-            if (key.includes('HubSpot') || key.includes('Calling') || key.includes('cti')) {
+            if (key.includes('HubSpot') || key.includes('Calling') || key.includes('default') || key.includes('Constants')) {
               log(`Found: ${key}`, 'info');
             }
           }
-          throw new Error('CallingExtensions constructor not found');
+          throw new Error('CallingExtensions constructor not found at window.default');
         }
 
-        log(`Using ${constructorSource} constructor`, 'success');
+        log('Found constructor at window.default', 'success');
 
-        // Try to initialize the SDK
-        const cti = new CallingExtensionsConstructor({
+        // Create the CTI instance
+        cti = new CallingExtensions({
           debugMode: true,
           eventHandlers: {
             onReady: (data) => {
-              log(`SDK initialized successfully. Portal ID: ${data.portalId || 'Unknown'}`, 'success');
+              log(`SDK ready event received. Portal ID: ${data.portalId || 'Unknown'}`, 'success');
             },
             onError: (error) => {
               log(`SDK error: ${error.message || 'Unknown error'}`, 'error');
@@ -107,7 +124,7 @@
           }
         });
 
-        log('SDK instance created successfully', 'success');
+        log('CTI instance created successfully', 'success');
 
         // Initialize the calling extension
         cti.initialized({
@@ -116,16 +133,65 @@
           sizeInfo: { width: 400, height: 500 }
         });
 
-        log('Calling extension initialized', 'success');
+        log('Calling extension initialized successfully', 'success');
+        log('Direct initialization test completed successfully', 'success');
       } catch (error) {
-        log(`Error: ${error.message}`, 'error');
-        log('Stack trace:', 'error');
-        log(error.stack, 'error');
+        log(`Direct initialization failed: ${error.message}`, 'error');
+        log('Try using the SDK Loader fallback instead', 'warning');
       }
     });
 
+    // Test SDK loader fallback
+    document.getElementById('test-loader-btn').addEventListener('click', function() {
+      log('Testing SDK Loader fallback...', 'info');
+
+      const sdkOptions = {
+        logMessage: log,
+        updateConnectionStatus: updateConnectionStatus,
+        ctiOptions: {
+          debugMode: true,
+          eventHandlers: {
+            onReady: (data) => {
+              log(`SDK ready event received. Portal ID: ${data.portalId || 'Unknown'}`, 'success');
+            },
+            onError: (error) => {
+              log(`SDK error: ${error.message || 'Unknown error'}`, 'error');
+            }
+          }
+        }
+      };
+
+      // Use the SDK Loader
+      window.HubSpotSDKLoader.initializeSDK(sdkOptions)
+        .then(ctiInstance => {
+          cti = ctiInstance;
+          log('SDK initialized successfully using SDK Loader', 'success');
+
+          // Initialize the calling extension
+          cti.initialized({
+            isLoggedIn: false,
+            isAvailable: true,
+            sizeInfo: { width: 400, height: 500 }
+          });
+
+          log('Calling extension initialized successfully', 'success');
+          log('SDK Loader test completed successfully', 'success');
+        })
+        .catch(error => {
+          log(`SDK Loader initialization failed: ${error.message}`, 'error');
+        });
+    });
+
+    // Clear log
+    document.getElementById('clear-log-btn').addEventListener('click', function() {
+      document.getElementById('log').innerHTML = '';
+      log('Log cleared', 'info');
+    });
+
     // Log initial message
-    log('Page loaded. Click the button to test SDK initialization.', 'info');
+    log('Page loaded. Click a button to test SDK initialization.', 'info');
+    log('1. Try "Test Direct Initialization" first (demo approach)', 'info');
+    log('2. If that fails, try "Test SDK Loader Fallback"', 'info');
   </script>
 </body>
 </html>

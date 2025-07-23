@@ -284,7 +284,9 @@
   </div>
 </div>
 
-<!-- Load the SDK loader and UUID library -->
+<!-- Load the HubSpot Calling Extensions SDK directly like the demo -->
+<script src="https://cdn.jsdelivr.net/npm/@hubspot/calling-extensions-sdk@latest/dist/main.js"></script>
+<!-- Load the SDK loader for fallback support and UUID library -->
 <script src="sdk-loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/uuid/dist/umd/uuidv4.min.js"></script>
 <script>
@@ -445,16 +447,45 @@
     }
   };
 
-  // Initialize the SDK using the SDK Loader
-  window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-    .then(ctiInstance => {
-      // Store the cti instance for use throughout the code
-      cti = ctiInstance;
-      logMessage("SDK initialized successfully using SDK Loader", "success");
-    })
-    .catch(error => {
-      logMessage(`Failed to initialize SDK: ${error.message}`, "error");
-    });
+  // Initialize the SDK directly like the demo
+  try {
+    // Access the SDK via window.default like in the demo
+    const CallingExtensions = window.default;
+
+    if (CallingExtensions) {
+      // Create the CTI instance directly
+      cti = new CallingExtensions(sdkOptions.ctiOptions);
+      logMessage("SDK initialized successfully using direct initialization", "success");
+    } else {
+      // If direct initialization fails, fall back to the SDK Loader
+      logMessage("Direct initialization failed, falling back to SDK Loader", "warning");
+      window.HubSpotSDKLoader.initializeSDK(sdkOptions)
+        .then(ctiInstance => {
+          // Store the cti instance for use throughout the code
+          cti = ctiInstance;
+          logMessage("SDK initialized successfully using SDK Loader", "success");
+        })
+        .catch(error => {
+          logMessage(`Failed to initialize SDK: ${error.message}`, "error");
+          updateConnectionStatus("disconnected", "Failed to initialize SDK");
+        });
+    }
+  } catch (error) {
+    logMessage(`Error during direct initialization: ${error.message}`, "error");
+
+    // Fall back to the SDK Loader
+    logMessage("Falling back to SDK Loader", "warning");
+    window.HubSpotSDKLoader.initializeSDK(sdkOptions)
+      .then(ctiInstance => {
+        // Store the cti instance for use throughout the code
+        cti = ctiInstance;
+        logMessage("SDK initialized successfully using SDK Loader", "success");
+      })
+      .catch(fallbackError => {
+        logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
+        updateConnectionStatus("disconnected", "Failed to initialize SDK");
+      });
+  }
 
   // CRM Integration Functions
 
