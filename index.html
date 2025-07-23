@@ -372,7 +372,7 @@
           // });
 
           // For this demo, we'll set a default value
-          state.fromNumber = "+1234567890";
+          state.fromNumber = "+6137105000";
           logMessage(`Owner's phone number set to ${state.fromNumber}`, "info");
 
           // Initialize the calling extension as specified in "Register and Associate Your Widget" section
@@ -433,6 +433,24 @@
         onCreateEngagementSucceeded: (data) => {
           logMessage(`Engagement creation succeeded: ${JSON.stringify(data)}`, "success");
           // You can add additional logic here if needed
+        },
+        // Add handler for INITIATE_CALL_ID_FAILED event
+        onInitiateCallIdFailed: (error) => {
+          logMessage(`Call ID initiation failed: ${JSON.stringify(error)}`, "error");
+
+          // Update UI to reflect the failure
+          updateConnectionStatus("connected", "Call initiation failed, but connection is still active");
+
+          // Enable the appropriate buttons
+          disableButtons([endButton]);
+          enableButtons([incomingButton]);
+
+          // Provide troubleshooting guidance
+          logMessage("The call could not be initiated with HubSpot. This may be due to:", "error");
+          logMessage("1. API rate limits being exceeded", "error");
+          logMessage("2. Invalid phone number format", "error");
+          logMessage("3. Server-side issues at HubSpot", "error");
+          logMessage("The engagement was still created successfully.", "info");
         },
       },
     }
