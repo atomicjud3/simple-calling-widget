@@ -164,6 +164,7 @@
   <p>Simulate calling actions using the buttons below:</p>
   <button id="login-btn" class="primary-button">Log In</button>
   <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
+  <button id="outbound-btn" class="primary-button success-button">Outbound Call</button>
   <button id="incoming-btn" class="primary-button success-button">Incoming Call</button>
   <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
   <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
@@ -254,6 +255,26 @@
     </div>
     <div class="modal-footer">
       <button id="save-notes-btn" class="primary-button success-button">Save Notes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Outbound Call Modal -->
+<div id="outbound-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Make Outbound Call</h3>
+      <span class="close" id="close-outbound-modal">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Enter the phone number you want to call. The number should include the country code.</p>
+      <input type="text" id="outbound-number" style="width: 100%; padding: 8px; margin-top: 10px;" placeholder="e.g. +61423662930 or 61423662930">
+      <p style="margin-top: 10px; font-size: 12px; color: #666;">
+        Phone numbers will be automatically formatted to E.164 format (with a leading + and only digits).
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="dial-btn" class="primary-button success-button">Dial Number</button>
     </div>
   </div>
 </div>
@@ -487,6 +508,35 @@
           logMessage("3. Server-side issues at HubSpot", "error");
           logMessage("The engagement was still created successfully.", "info");
         },
+        // Add handler for OUTGOINGCALL event
+        onOutgoingCall: (data) => {
+          logMessage(`Outgoing call event received: ${JSON.stringify(data)}`, "info");
+
+          // Extract call information from the event data
+          const { toNumber, fromNumber, externalCallId } = data;
+
+          // Update state with call information
+          state.toNumber = toNumber;
+          state.fromNumber = fromNumber || state.fromNumber;
+          state.externalCallId = externalCallId;
+
+          logMessage(`Handling outgoing call to: ${toNumber}`, "success");
+
+          // Update UI to reflect the active call
+          updateConnectionStatus("connected", "Call in progress");
+
+          // Enable the appropriate buttons for an active call
+          enableButtons([endButton]);
+          disableButtons([incomingButton]);
+
+          // Start call timer
+          startCallTimer();
+
+          // Return a response to HubSpot to acknowledge the event
+          return {
+            success: true
+          };
+        },
       },
     }
   };
@@ -552,6 +602,7 @@
   // Button Actions
   const logInButton = document.getElementById("login-btn");
   const logOutButton = document.getElementById("logout-btn");
+  const outboundButton = document.getElementById("outbound-btn");
   const incomingButton = document.getElementById("incoming-btn");
   const answerButton = document.getElementById("answer-btn");
   const endButton = document.getElementById("end-btn");
@@ -573,6 +624,12 @@
   const callNotesTextarea = document.getElementById("call-notes");
   const saveNotesButton = document.getElementById("save-notes-btn");
 
+  // Outbound call modal elements
+  const outboundModal = document.getElementById("outbound-modal");
+  const closeOutboundModalBtn = document.getElementById("close-outbound-modal");
+  const outboundNumberInput = document.getElementById("outbound-number");
+  const dialButton = document.getElementById("dial-btn");
+
   // Call history elements
   const historyButton = document.getElementById("history-btn");
   const callHistoryContainer = document.getElementById("call-history-container");
@@ -592,15 +649,104 @@
     logMessage("User Logged In", "success");
     updateConnectionStatus("connected", "User logged in");
     disableButtons([logInButton]);
-    enableButtons([logOutButton, incomingButton]);
+    enableButtons([logOutButton, outboundButton, incomingButton]);
   });
 
   logOutButton.addEventListener("click", () => {
     cti.userLoggedOut();
     logMessage("User Logged Out", "info");
     updateConnectionStatus("disconnected", "User logged out");
-    disableButtons([logOutButton, incomingButton, answerButton, endButton]);
+    disableButtons([logOutButton, outboundButton, incomingButton, answerButton, endButton]);
     enableButtons([logInButton]);
+  });
+
+  // Format phone number to E.164 format
+  function formatPhoneNumber(rawNumber) {
+    // Format the phone number to ensure it's in E.164 format
+    let phoneNumber = rawNumber;
+
+    // Basic validation and formatting for phone numbers
+    // Remove any non-digit characters except the leading +
+    phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+
+    // Ensure it starts with a + if it doesn't already
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
+    }
+
+    return phoneNumber;
+  }
+
+  // Outbound call button event listener
+  outboundButton.addEventListener("click", () => {
+    // Show the outbound call modal
+    outboundModal.style.display = "block";
+
+    // Focus the input field
+    outboundNumberInput.focus();
+
+    logMessage("Outbound call modal opened", "info");
+  });
+
+  // Close outbound modal button event listener
+  closeOutboundModalBtn.addEventListener("click", () => {
+    outboundModal.style.display = "none";
+    logMessage("Outbound call modal closed", "info");
+  });
+
+  // Dial button event listener
+  dialButton.addEventListener("click", () => {
+    const rawNumber = outboundNumberInput.value.trim();
+
+    if (!rawNumber) {
+      logMessage("Please enter a phone number", "error");
+      return;
+    }
+
+    logMessage(`Dialing number: ${rawNumber}`, "info");
+
+    try {
+      // Format the phone number
+      const phoneNumber = formatPhoneNumber(rawNumber);
+      logMessage(`Formatted phone number: ${phoneNumber}`, "info");
+      state.toNumber = phoneNumber;
+
+      // Generate call ID
+      state.externalCallId = uuidv4();
+      logMessage(`Generated call ID: ${state.externalCallId}`, "info");
+
+      // Close the modal
+      outboundModal.style.display = "none";
+
+      // Initiate outbound call
+      try {
+        cti.outgoingCall({
+          externalCallId: state.externalCallId,
+          createEngagement: true,
+          fromNumber: state.fromNumber,
+          toNumber: phoneNumber,
+        });
+
+        logMessage(`Outbound call initiated to: ${phoneNumber}`, "success");
+        enableButtons([endButton]);
+        disableButtons([outboundButton, incomingButton]);
+
+        // Start call timer when call is initiated
+        startCallTimer();
+      } catch (error) {
+        logMessage(`Error initiating outbound call: ${error.message || 'Unknown error'}`, "error");
+        updateConnectionStatus("connected", "Call initiation failed, but connection is still active");
+      }
+    } catch (error) {
+      logMessage(`Error in dial process: ${error.message}`, "error");
+    }
+  });
+
+  // Close modal when clicking outside of it
+  window.addEventListener("click", (event) => {
+    if (event.target === outboundModal) {
+      outboundModal.style.display = "none";
+    }
   });
 
   incomingButton.addEventListener("click", () => {
@@ -667,7 +813,7 @@
     logMessage("Call ended", "info");
     logMessage("Verifying engagement creation in HubSpot...", "info");
     disableButtons([endButton]);
-    enableButtons([incomingButton]);
+    enableButtons([outboundButton, incomingButton]);
 
     // Stop call timer when call ends
     stopCallTimer();
