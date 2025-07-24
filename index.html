@@ -645,19 +645,31 @@
   const recordingsButton = document.getElementById("recordings-btn");
 
   logInButton.addEventListener("click", () => {
-    cti.userLoggedIn();
-    logMessage("User Logged In", "success");
-    updateConnectionStatus("connected", "User logged in");
-    disableButtons([logInButton]);
-    enableButtons([logOutButton, outboundButton, incomingButton]);
+    try {
+      cti.userLoggedIn();
+      logMessage("User Logged In", "success");
+      updateConnectionStatus("connected", "User logged in");
+      disableButtons([logInButton]);
+      enableButtons([logOutButton, outboundButton, incomingButton]);
+    } catch (error) {
+      logMessage(`Error logging in: ${error.message || 'Unknown error'}`, "error");
+      // Handle the error gracefully
+      updateConnectionStatus("disconnected", "Login failed");
+    }
   });
 
   logOutButton.addEventListener("click", () => {
-    cti.userLoggedOut();
-    logMessage("User Logged Out", "info");
-    updateConnectionStatus("disconnected", "User logged out");
-    disableButtons([logOutButton, outboundButton, incomingButton, answerButton, endButton]);
-    enableButtons([logInButton]);
+    try {
+      cti.userLoggedOut();
+      logMessage("User Logged Out", "info");
+      updateConnectionStatus("disconnected", "User logged out");
+      disableButtons([logOutButton, outboundButton, incomingButton, answerButton, endButton]);
+      enableButtons([logInButton]);
+    } catch (error) {
+      logMessage(`Error logging out: ${error.message || 'Unknown error'}`, "error");
+      // Handle the error gracefully
+      updateConnectionStatus("connected", "Logout failed, but connection is still active");
+    }
   });
 
   // Format phone number to E.164 format
@@ -768,15 +780,21 @@
   });
 
   answerButton.addEventListener("click", () => {
-    cti.callAnswered({
-      externalCallId: state.externalCallId,
-    });
-    logMessage("Call answered", "success");
-    enableButtons([endButton]);
-    disableButtons([answerButton]);
+    try {
+      cti.callAnswered({
+        externalCallId: state.externalCallId,
+      });
+      logMessage("Call answered", "success");
+      enableButtons([endButton]);
+      disableButtons([answerButton]);
 
-    // Start call timer when call is answered
-    startCallTimer();
+      // Start call timer when call is answered
+      startCallTimer();
+    } catch (error) {
+      logMessage(`Error answering call: ${error.message || 'Unknown error'}`, "error");
+      // Handle the error gracefully
+      updateConnectionStatus("connected", "Call answer failed, but connection is still active");
+    }
   });
 
   endButton.addEventListener("click", () => {
