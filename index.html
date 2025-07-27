@@ -165,6 +165,7 @@
   <button id="login-btn" class="primary-button">Log In</button>
   <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
   <button id="outbound-btn" class="primary-button success-button">Outbound Call</button>
+  <button id="teams-call-btn" class="primary-button success-button">Teams Call</button>
   <button id="incoming-btn" class="primary-button success-button">Incoming Call</button>
   <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
   <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
@@ -275,6 +276,26 @@
     </div>
     <div class="modal-footer">
       <button id="dial-btn" class="primary-button success-button">Dial Number</button>
+    </div>
+  </div>
+</div>
+
+<!-- Teams Call Modal -->
+<div id="teams-call-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Make Teams Call</h3>
+      <span class="close" id="close-teams-call-modal">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Enter the phone number you want to call using Microsoft Teams. The number should include the country code.</p>
+      <input type="text" id="teams-call-number" style="width: 100%; padding: 8px; margin-top: 10px;" placeholder="e.g. +61423662930 or 61423662930">
+      <p style="margin-top: 10px; font-size: 12px; color: #666;">
+        Phone numbers will be automatically formatted to E.164 format (with a leading + and only digits).
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="teams-dial-btn" class="primary-button success-button">Call with Teams</button>
     </div>
   </div>
 </div>
@@ -603,6 +624,7 @@
   const logInButton = document.getElementById("login-btn");
   const logOutButton = document.getElementById("logout-btn");
   const outboundButton = document.getElementById("outbound-btn");
+  const teamsCallButton = document.getElementById("teams-call-btn");
   const incomingButton = document.getElementById("incoming-btn");
   const answerButton = document.getElementById("answer-btn");
   const endButton = document.getElementById("end-btn");
@@ -630,6 +652,12 @@
   const outboundNumberInput = document.getElementById("outbound-number");
   const dialButton = document.getElementById("dial-btn");
 
+  // Teams call modal elements
+  const teamsCallModal = document.getElementById("teams-call-modal");
+  const closeTeamsCallModalBtn = document.getElementById("close-teams-call-modal");
+  const teamsCallNumberInput = document.getElementById("teams-call-number");
+  const teamsDialButton = document.getElementById("teams-dial-btn");
+
   // Call history elements
   const historyButton = document.getElementById("history-btn");
   const callHistoryContainer = document.getElementById("call-history-container");
@@ -650,7 +678,7 @@
       logMessage("User Logged In", "success");
       updateConnectionStatus("connected", "User logged in");
       disableButtons([logInButton]);
-      enableButtons([logOutButton, outboundButton, incomingButton]);
+      enableButtons([logOutButton, outboundButton, teamsCallButton, incomingButton]);
     } catch (error) {
       logMessage(`Error logging in: ${error.message || 'Unknown error'}`, "error");
       // Handle the error gracefully
@@ -663,7 +691,7 @@
       cti.userLoggedOut();
       logMessage("User Logged Out", "info");
       updateConnectionStatus("disconnected", "User logged out");
-      disableButtons([logOutButton, outboundButton, incomingButton, answerButton, endButton]);
+      disableButtons([logOutButton, outboundButton, teamsCallButton, incomingButton, answerButton, endButton]);
       enableButtons([logInButton]);
     } catch (error) {
       logMessage(`Error logging out: ${error.message || 'Unknown error'}`, "error");
@@ -754,10 +782,61 @@
     }
   });
 
+  // Teams call button event listener
+  teamsCallButton.addEventListener("click", () => {
+    // Show the Teams call modal
+    teamsCallModal.style.display = "block";
+
+    // Focus the input field
+    teamsCallNumberInput.focus();
+
+    logMessage("Teams call modal opened", "info");
+  });
+
+  // Close Teams call modal button event listener
+  closeTeamsCallModalBtn.addEventListener("click", () => {
+    teamsCallModal.style.display = "none";
+    logMessage("Teams call modal closed", "info");
+  });
+
+  // Teams dial button event listener
+  teamsDialButton.addEventListener("click", () => {
+    const rawNumber = teamsCallNumberInput.value.trim();
+
+    if (!rawNumber) {
+      logMessage("Please enter a phone number", "error");
+      return;
+    }
+
+    logMessage(`Initiating Teams call to: ${rawNumber}`, "info");
+
+    try {
+      // Format the phone number
+      const phoneNumber = formatPhoneNumber(rawNumber);
+      logMessage(`Formatted phone number: ${phoneNumber}`, "info");
+
+      // Create Teams deep link URL
+      const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=tel:${phoneNumber}`;
+      logMessage(`Teams URL created: ${teamsUrl}`, "info");
+
+      // Close the modal
+      teamsCallModal.style.display = "none";
+
+      // Open the Teams URL in a new window/tab
+      window.open(teamsUrl, '_blank');
+
+      logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
+    } catch (error) {
+      logMessage(`Error initiating Teams call: ${error.message}`, "error");
+    }
+  });
+
   // Close modal when clicking outside of it
   window.addEventListener("click", (event) => {
     if (event.target === outboundModal) {
       outboundModal.style.display = "none";
+    } else if (event.target === teamsCallModal) {
+      teamsCallModal.style.display = "none";
     }
   });
 
