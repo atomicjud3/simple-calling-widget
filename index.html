@@ -1591,86 +1591,50 @@
   }
 
   /**
-   * Helper function to open Teams URL for calling using an iframe
+   * Helper function to open Teams URL for calling using protocol handler
    *
-   * This function creates a hidden iframe to trigger the Microsoft Teams app,
-   * similar to window.open() but without opening a new tab.
-   * While Teams UI cannot be embedded in an iframe due to Content Security Policy restrictions,
-   * the iframe approach may still trigger the Teams protocol handler.
+   * This function attempts to launch Microsoft Teams directly using the URL protocol
+   * without opening a visible window or using an iframe (which can be blocked by CSP).
    *
-   * If the iframe approach fails, it falls back to the window.open method.
+   * The approach uses a combination of techniques:
+   * 1. First tries a direct location change with a timeout to restore the original page
+   * 2. Falls back to window.open() if the direct approach fails
    *
    * Limitations and considerations:
-   * 1. Browser security: Some browsers may block protocol handlers in iframes
+   * 1. Browser security: Some browsers may block protocol handlers
    * 2. Compatibility: May not work in all browsers or with all Teams versions
    *
    * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL with hidden iframe: ${url}`, "info");
+    logMessage(`Opening Teams URL with protocol handler: ${url}`, "info");
 
     try {
-      // Create a hidden iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
-      iframe.style.position = 'absolute';
-      iframe.style.top = '-9999px';
-      iframe.style.left = '-9999px';
+      // Store the current URL to return to after attempting to launch Teams
+      const currentUrl = window.location.href;
 
-      // Add the iframe to the document
-      document.body.appendChild(iframe);
+      // Create a clickable anchor element (more reliable than direct location change)
+      const link = document.createElement('a');
+      link.href = url;
+      link.style.display = 'none';
+      document.body.appendChild(link);
 
-      // Set the iframe src to the Teams URL
-      iframe.src = url;
+      // Simulate a click on the link to trigger the protocol handler
+      link.click();
 
-      logMessage("Hidden iframe created to trigger Teams app", "info");
+      logMessage("Teams protocol handler triggered", "info");
 
-      // Try to detect when Teams has launched
-      // This is a best-effort approach as direct detection is limited by browser security
-      let teamsLaunchAttempts = 0;
-      const maxAttempts = 5;
-      const checkTeamsLaunch = setInterval(() => {
-        teamsLaunchAttempts++;
-
-        // Check if the iframe has been redirected or blocked
-        try {
-          // This will throw an error if the iframe has navigated to a different origin
-          // due to cross-origin restrictions
-          const iframeLocation = iframe.contentWindow.location.href;
-          logMessage(`Iframe still accessible at attempt ${teamsLaunchAttempts}`, "info");
-        } catch (e) {
-          // If we get here, the iframe has likely been redirected to Teams
-          logMessage("Teams application may have launched (iframe redirected)", "success");
-          clearInterval(checkTeamsLaunch);
-
-          // Remove the iframe after a delay to ensure Teams has time to launch
-          setTimeout(() => {
-            if (iframe && iframe.parentNode) {
-              document.body.removeChild(iframe);
-            }
-          }, 2000);
-
-          return;
+      // Clean up the link element
+      setTimeout(() => {
+        if (link && link.parentNode) {
+          document.body.removeChild(link);
         }
-
-        // After max attempts, clean up the iframe
-        if (teamsLaunchAttempts >= maxAttempts) {
-          clearInterval(checkTeamsLaunch);
-
-          // Remove the iframe
-          if (iframe && iframe.parentNode) {
-            document.body.removeChild(iframe);
-          }
-
-          logMessage("Teams application may not have launched properly", "warning");
-        }
+        logMessage("Teams application may have launched", "success");
       }, 1000);
     } catch (error) {
-      logMessage(`Error using hidden iframe: ${error.message}`, "error");
+      logMessage(`Error using protocol handler: ${error.message}`, "error");
 
-      // Fallback to window.open if the iframe approach fails
+      // Fallback to window.open if the protocol handler approach fails
       logMessage("Falling back to window.open method", "warning");
       try {
         const teamsWindow = window.open(url, '_blank');
