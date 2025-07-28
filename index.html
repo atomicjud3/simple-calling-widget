@@ -1596,9 +1596,9 @@
    * This function attempts to launch Microsoft Teams directly using the URL protocol
    * without opening a visible window or using an iframe (which can be blocked by CSP).
    *
-   * The approach uses a direct protocol handler approach:
-   * 1. Uses window.location.href to directly navigate to the Teams URL
-   * 2. Immediately restores the original page using history.back()
+   * The approach uses a pure protocol handler approach:
+   * 1. Modifies the URL to use the 'teams:' protocol instead of 'https:'
+   * 2. Uses a hidden anchor with a direct protocol link
    * 3. Falls back to window.open() if the direct approach fails
    *
    * Limitations and considerations:
@@ -1608,31 +1608,33 @@
    * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL with direct protocol handler: ${url}`, "info");
+    logMessage(`Opening Teams URL with teams protocol handler: ${url}`, "info");
 
     try {
-      // Store the current URL to return to after attempting to launch Teams
-      const currentUrl = window.location.href;
+      // Convert the https URL to a teams protocol URL
+      // This avoids any CSP issues completely as we're using the native protocol
+      const teamsProtocolUrl = url.replace('https:', 'teams:');
 
-      // Use a direct approach without creating DOM elements
-      // This avoids any potential CSP issues with iframes or frames
-      const originalUrl = window.location.href;
+      // Create a temporary hidden anchor element
+      const anchor = document.createElement('a');
+      anchor.href = teamsProtocolUrl;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
 
-      // Navigate directly to the Teams URL
-      window.location.href = url;
+      // Click the anchor to trigger the protocol handler
+      anchor.click();
 
-      // Immediately go back to prevent page navigation
+      // Clean up the anchor element
       setTimeout(() => {
-        // Only go back if we actually navigated away
-        if (window.location.href !== originalUrl) {
-          history.back();
+        if (anchor && anchor.parentNode) {
+          document.body.removeChild(anchor);
         }
         logMessage("Teams application may have launched", "success");
       }, 100);
 
-      logMessage("Direct protocol handler triggered", "info");
+      logMessage("Teams protocol handler triggered", "info");
     } catch (error) {
-      logMessage(`Error using direct protocol handler: ${error.message}`, "error");
+      logMessage(`Error using teams protocol handler: ${error.message}`, "error");
 
       // Fallback to window.open if the direct approach fails
       logMessage("Falling back to window.open method", "warning");
