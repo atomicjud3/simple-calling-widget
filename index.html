@@ -498,7 +498,8 @@
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
             // Open the Teams URL in a dedicated window
-            openTeamsUrlSilently(teamsUrl);
+            // openTeamsUrlSilently(teamsUrl);
+            window.open(teamsUrl, '_blank');
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
@@ -853,7 +854,8 @@
       teamsCallModal.style.display = "none";
 
       // Open the Teams URL in a dedicated window
-      openTeamsUrlSilently(teamsUrl);
+      // openTeamsUrlSilently(teamsUrl);
+      window.open(teamsUrl, '_blank');
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
     } catch (error) {
