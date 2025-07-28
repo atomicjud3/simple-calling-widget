@@ -96,64 +96,64 @@
     .log-info {
       color: #007bff;
     }
-  /* Modal styles */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
 
-  .modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 80%;
-    max-width: 500px;
-  }
+    .modal-content {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 500px;
+    }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
 
-  .modal-header h3 {
-    margin: 0;
-  }
+    .modal-header h3 {
+      margin: 0;
+    }
 
-  .close {
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-  }
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-  .close:hover {
-    color: #000;
-  }
+    .close:hover {
+      color: #000;
+    }
 
-  .modal-body {
-    margin-bottom: 15px;
-  }
+    .modal-body {
+      margin-bottom: 15px;
+    }
 
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-  }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+    }
 
-  /* Blinking animation for recording indicator */
-  @keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
-  }
+    /* Blinking animation for recording indicator */
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -311,7 +311,7 @@
     // Check if it's a 404 error from the terminate endpoint
     const error = event.reason;
     if (error && error.message && error.message.includes('404') &&
-        error.message.includes('terminate')) {
+            error.message.includes('terminate')) {
       console.log('[DEBUG_LOG] Caught unhandled promise rejection: Call termination API endpoint returned 404');
       console.log('[DEBUG_LOG] This may be due to API changes in HubSpot. The call has been ended locally.');
 
@@ -487,21 +487,15 @@
             // Start call timer to track call duration and update UI
             // startCallTimer();
 
-            // Create Teams launcher URL for silent calling
+            // Create Teams deep link URL
             // For PSTN calls, the format should be 4:<phonenumber> without the + prefix and country code
             let formattedPhoneNumber = phoneNumber.replace('+', '');
             // Remove the country code "61" if it's at the beginning of the number
             if (formattedPhoneNumber.startsWith('61')) {
               formattedPhoneNumber = formattedPhoneNumber.substring(2);
             }
-
-            // Create the base call URL that will be encoded in the launcher URL
-            const baseCallUrl = `/l/call/0/0?users=4:${formattedPhoneNumber}`;
-            const encodedCallUrl = encodeURIComponent(`/_#${baseCallUrl}`);
-
-            // Create the launcher URL with parameters for silent launching
-            const teamsUrl = `https://teams.microsoft.com/dl/launcher/launcher.html?url=${encodedCallUrl}&type=call&directDl=true&msLaunch=true&enableMobilePage=true&suppressPrompt=true`;
-            logMessage(`Teams launcher URL created: ${teamsUrl}`, "info");
+            const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
+            logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
             // Open the Teams URL in a dedicated window
             // window.open(teamsUrl, '_blank');
@@ -609,15 +603,15 @@
       // If direct initialization fails, fall back to the SDK Loader
       logMessage("Direct initialization failed, falling back to SDK Loader", "warning");
       window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-        .then(ctiInstance => {
-          // Store the cti instance for use throughout the code
-          cti = ctiInstance;
-          logMessage("SDK initialized successfully using SDK Loader", "success");
-        })
-        .catch(error => {
-          logMessage(`Failed to initialize SDK: ${error.message}`, "error");
-          updateConnectionStatus("disconnected", "Failed to initialize SDK");
-        });
+              .then(ctiInstance => {
+                // Store the cti instance for use throughout the code
+                cti = ctiInstance;
+                logMessage("SDK initialized successfully using SDK Loader", "success");
+              })
+              .catch(error => {
+                logMessage(`Failed to initialize SDK: ${error.message}`, "error");
+                updateConnectionStatus("disconnected", "Failed to initialize SDK");
+              });
     }
   } catch (error) {
     logMessage(`Error during direct initialization: ${error.message}`, "error");
@@ -625,22 +619,22 @@
     // Fall back to the SDK Loader
     logMessage("Falling back to SDK Loader", "warning");
     window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-      .then(ctiInstance => {
-        // Store the cti instance for use throughout the code
-        cti = ctiInstance;
+            .then(ctiInstance => {
+              // Store the cti instance for use throughout the code
+              cti = ctiInstance;
 
-        // Double-check Constants initialization in fallback path
-        if (!cti.Constants && window.Constants) {
-          cti.Constants = window.Constants;
-          logMessage("Constants initialized in fallback path", "success");
-        }
+              // Double-check Constants initialization in fallback path
+              if (!cti.Constants && window.Constants) {
+                cti.Constants = window.Constants;
+                logMessage("Constants initialized in fallback path", "success");
+              }
 
-        logMessage("SDK initialized successfully using SDK Loader", "success");
-      })
-      .catch(fallbackError => {
-        logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
-        updateConnectionStatus("disconnected", "Failed to initialize SDK");
-      });
+              logMessage("SDK initialized successfully using SDK Loader", "success");
+            })
+            .catch(fallbackError => {
+              logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
+              updateConnectionStatus("disconnected", "Failed to initialize SDK");
+            });
   }
 
   // Call Management Functions
@@ -846,21 +840,15 @@
       const phoneNumber = formatPhoneNumber(rawNumber);
       logMessage(`Formatted phone number: ${phoneNumber}`, "info");
 
-      // Create Teams launcher URL for silent calling
+      // Create Teams deep link URL
       // For PSTN calls, the format should be 4:<phonenumber> without the + prefix and country code
       let formattedPhoneNumber = phoneNumber.replace('+', '');
       // Remove the country code "61" if it's at the beginning of the number
       if (formattedPhoneNumber.startsWith('61')) {
         formattedPhoneNumber = formattedPhoneNumber.substring(2);
       }
-
-      // Create the base call URL that will be encoded in the launcher URL
-      const baseCallUrl = `/l/call/0/0?users=4:${formattedPhoneNumber}`;
-      const encodedCallUrl = encodeURIComponent(`/_#${baseCallUrl}`);
-
-      // Create the launcher URL with parameters for silent launching
-      const teamsUrl = `https://teams.microsoft.com/dl/launcher/launcher.html?url=${encodedCallUrl}&type=call&directDl=true&msLaunch=true&enableMobilePage=true&suppressPrompt=true`;
-      logMessage(`Teams launcher URL created: ${teamsUrl}`, "info");
+      const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
+      logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
       // Close the modal
       teamsCallModal.style.display = "none";
@@ -923,8 +911,8 @@
   endButton.addEventListener("click", () => {
     // Define a fallback value for callEndStatus if cti.Constants is undefined
     const callEndStatus = cti.Constants && cti.Constants.callEndStatus
-      ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
-      : "COMPLETED"; // Fallback value if Constants is undefined
+            ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
+            : "COMPLETED"; // Fallback value if Constants is undefined
 
     // Call the callEnded method with error handling
     try {
@@ -938,7 +926,7 @@
         callEndPromise.catch(error => {
           // Check if it's a 404 error from the terminate endpoint
           if (error && error.message && error.message.includes('404') &&
-              error.message.includes('terminate')) {
+                  error.message.includes('terminate')) {
             logMessage("Warning: Call termination API endpoint returned 404. This may be due to API changes.", "warning");
             logMessage("The call has been ended locally, but HubSpot may not have been notified properly.", "warning");
             logMessage("This won't affect your ability to make or receive calls.", "info");
@@ -1236,8 +1224,8 @@
 
       // Format notes (truncate if too long)
       const notes = call.notes ?
-        (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
-        'No notes';
+              (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
+              'No notes';
 
       // Create row cells
       row.innerHTML = `
@@ -1605,35 +1593,127 @@
   /**
    * Helper function to open Teams URL for calling
    *
-   * This function opens the Microsoft Teams URL directly using window.open.
-   * Due to Content Security Policy restrictions, Teams cannot be embedded in an iframe
-   * from external domains (only 'self' and 'login.microsoftonline.com' are allowed).
+   * This function opens the Microsoft Teams URL in a new browser tab to ensure
+   * the Teams pop-up message with "Start Call" button appears correctly.
+   * It also creates a notification dialog in the current window to inform the user
+   * about the call being initiated and provides instructions.
    *
-   * The launcher URL format with parameters like directDl=true, msLaunch=true, and
-   * suppressPrompt=true helps ensure the Teams application launches directly without
-   * requiring user interaction in the browser.
+   * The notification dialog remains visible until the user confirms they've started the call
+   * or manually closes it using the close button.
    *
-   * @param {string} url - The Teams launcher URL to open
+   * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL: ${url}`, "info");
+    logMessage(`Opening Teams URL to trigger Teams pop-up: ${url}`, "info");
+
+    // First, open the URL in a new tab to ensure the Teams pop-up appears
+    const teamsWindow = window.open(url, '_blank');
+
+    if (!teamsWindow) {
+      logMessage("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.", "error");
+      alert("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.");
+      return;
+    }
+
+    logMessage("Teams URL opened in a new tab", "success");
 
     try {
-      // Open the URL directly in a new window/tab
-      // The launcher URL with parameters like directDl=true and msLaunch=true
-      // should help ensure Teams launches directly
-      const teamsWindow = window.open(url, '_blank');
+      // Create a notification dialog in the current window
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '20px';  // Position at top instead of center
+      container.style.right = '20px'; // Position at right side
+      container.style.width = '350px';
+      container.style.zIndex = '9999';
+      container.style.backgroundColor = 'white';
+      container.style.borderRadius = '8px';
+      container.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+      container.style.overflow = 'hidden';
 
-      if (teamsWindow) {
-        logMessage("Teams URL opened successfully", "success");
-      } else {
-        // This happens if pop-up windows are blocked
-        logMessage("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.", "error");
-        alert("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.");
-      }
+      // Create a header with instructions and close button
+      const header = document.createElement('div');
+      header.style.padding = '10px';
+      header.style.backgroundColor = '#007bff';
+      header.style.color = 'white';
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+
+      // Add title
+      const title = document.createElement('div');
+      title.textContent = 'Microsoft Teams Call';
+      title.style.fontWeight = 'bold';
+
+      // Create close button
+      const closeButton = document.createElement('button');
+      closeButton.textContent = '×';
+      closeButton.style.background = 'none';
+      closeButton.style.border = 'none';
+      closeButton.style.color = 'white';
+      closeButton.style.fontSize = '20px';
+      closeButton.style.cursor = 'pointer';
+      closeButton.style.padding = '0 5px';
+
+      // Add elements to header
+      header.appendChild(title);
+      header.appendChild(closeButton);
+
+      // Add instructions
+      const instructions = document.createElement('div');
+      instructions.style.padding = '15px';
+      instructions.style.backgroundColor = '#f8f9fa';
+      instructions.innerHTML = 'A new tab has been opened to initiate your Teams call.<br><br>' +
+              'Please click the <strong>Start Call</strong> button in the Microsoft Teams pop-up that appears.<br><br>' +
+              'Once you\'ve started the call, you can close this notification.';
+
+      // Add a "Call Started" button
+      const callStartedButton = document.createElement('button');
+      callStartedButton.textContent = 'I\'ve Started the Call';
+      callStartedButton.style.width = '100%';
+      callStartedButton.style.padding = '10px';
+      callStartedButton.style.backgroundColor = '#28a745';
+      callStartedButton.style.color = 'white';
+      callStartedButton.style.border = 'none';
+      callStartedButton.style.borderTop = '1px solid #dee2e6';
+      callStartedButton.style.cursor = 'pointer';
+      callStartedButton.style.fontWeight = 'bold';
+
+      // Add elements to container
+      container.appendChild(header);
+      container.appendChild(instructions);
+      container.appendChild(callStartedButton);
+
+      // Add the container to the document
+      document.body.appendChild(container);
+
+      logMessage("Notification dialog created", "info");
+
+      // Close button event handler
+      closeButton.addEventListener('click', () => {
+        if (container && container.parentNode) {
+          document.body.removeChild(container);
+          logMessage("Notification closed by user", "info");
+        }
+      });
+
+      // Call started button event handler
+      callStartedButton.addEventListener('click', () => {
+        if (container && container.parentNode) {
+          document.body.removeChild(container);
+          logMessage("Notification closed after user confirmed call started", "success");
+        }
+      });
+
+      // Auto-close the notification after 60 seconds
+      setTimeout(() => {
+        if (container && container.parentNode) {
+          document.body.removeChild(container);
+          logMessage("Notification auto-closed after timeout", "info");
+        }
+      }, 60000);
+
     } catch (error) {
-      logMessage(`Error opening Teams URL: ${error.message}`, "error");
-      alert("Unable to open Microsoft Teams. Please try again or copy this URL: " + url);
+      logMessage(`Error creating notification dialog: ${error.message}`, "error");
     }
   }
 
