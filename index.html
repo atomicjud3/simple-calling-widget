@@ -1603,58 +1603,37 @@
   }
 
   /**
-   * Helper function to silently open Teams URL using a hidden iframe
+   * Helper function to open Teams URL for calling
    *
-   * This function launches Microsoft Teams calls silently without opening a new tab.
-   * It uses a hidden iframe to trigger the Teams protocol handler, which should launch
-   * the Teams application directly when using the launcher URL with suppressPrompt=true.
+   * This function opens the Microsoft Teams URL directly using window.open.
+   * Due to Content Security Policy restrictions, Teams cannot be embedded in an iframe
+   * from external domains (only 'self' and 'login.microsoftonline.com' are allowed).
    *
    * The launcher URL format with parameters like directDl=true, msLaunch=true, and
    * suppressPrompt=true helps ensure the Teams application launches directly without
    * requiring user interaction in the browser.
    *
-   * @param {string} url - The Teams launcher URL to open silently
+   * @param {string} url - The Teams launcher URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL silently: ${url}`, "info");
+    logMessage(`Opening Teams URL: ${url}`, "info");
 
     try {
-      // Create a hidden iframe
-      const iframe = document.createElement('iframe');
+      // Open the URL directly in a new window/tab
+      // The launcher URL with parameters like directDl=true and msLaunch=true
+      // should help ensure Teams launches directly
+      const teamsWindow = window.open(url, '_blank');
 
-      // Make the iframe completely hidden
-      iframe.style.display = 'none';
-      iframe.style.position = 'absolute';
-      iframe.style.top = '-1000px';
-      iframe.style.left = '-1000px';
-      iframe.style.width = '1px';
-      iframe.style.height = '1px';
-
-      // Add the iframe to the document
-      document.body.appendChild(iframe);
-
-      // Set the iframe src to the Teams launcher URL
-      iframe.src = url;
-
-      logMessage("Teams URL opened silently via hidden iframe", "success");
-
-      // Remove the iframe after a short delay
-      setTimeout(() => {
-        if (iframe && iframe.parentNode) {
-          document.body.removeChild(iframe);
-          logMessage("Hidden iframe removed", "info");
-        }
-      }, 3000);
-    } catch (error) {
-      logMessage(`Error opening Teams URL silently: ${error.message}`, "error");
-
-      // Fallback to window.open if the iframe approach fails
-      try {
-        logMessage("Falling back to window.open method", "warning");
-        window.open(url, '_blank');
-      } catch (fallbackError) {
-        logMessage(`Fallback also failed: ${fallbackError.message}`, "error");
+      if (teamsWindow) {
+        logMessage("Teams URL opened successfully", "success");
+      } else {
+        // This happens if pop-up windows are blocked
+        logMessage("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.", "error");
+        alert("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.");
       }
+    } catch (error) {
+      logMessage(`Error opening Teams URL: ${error.message}`, "error");
+      alert("Unable to open Microsoft Teams. Please try again or copy this URL: " + url);
     }
   }
 
