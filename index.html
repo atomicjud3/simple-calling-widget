@@ -96,64 +96,64 @@
     .log-info {
       color: #007bff;
     }
-    /* Modal styles */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-    }
+  /* Modal styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
 
-    .modal-content {
-      background-color: #fff;
-      margin: 15% auto;
-      padding: 20px;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 500px;
-    }
+  .modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+  }
 
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
 
-    .modal-header h3 {
-      margin: 0;
-    }
+  .modal-header h3 {
+    margin: 0;
+  }
 
-    .close {
-      color: #aaa;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+  .close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
 
-    .close:hover {
-      color: #000;
-    }
+  .close:hover {
+    color: #000;
+  }
 
-    .modal-body {
-      margin-bottom: 15px;
-    }
+  .modal-body {
+    margin-bottom: 15px;
+  }
 
-    .modal-footer {
-      display: flex;
-      justify-content: flex-end;
-    }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
 
-    /* Blinking animation for recording indicator */
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
-    }
+  /* Blinking animation for recording indicator */
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
   </style>
 </head>
 <body>
@@ -311,7 +311,7 @@
     // Check if it's a 404 error from the terminate endpoint
     const error = event.reason;
     if (error && error.message && error.message.includes('404') &&
-            error.message.includes('terminate')) {
+        error.message.includes('terminate')) {
       console.log('[DEBUG_LOG] Caught unhandled promise rejection: Call termination API endpoint returned 404');
       console.log('[DEBUG_LOG] This may be due to API changes in HubSpot. The call has been ended locally.');
 
@@ -498,7 +498,9 @@
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
             // Open the Teams URL in a dedicated window
-            openTeamsUrlSilently(teamsUrl);
+            window.open(teamsUrl, '_blank');
+            
+            // openTeamsUrlSilently(teamsUrl);
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
@@ -602,15 +604,15 @@
       // If direct initialization fails, fall back to the SDK Loader
       logMessage("Direct initialization failed, falling back to SDK Loader", "warning");
       window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-              .then(ctiInstance => {
-                // Store the cti instance for use throughout the code
-                cti = ctiInstance;
-                logMessage("SDK initialized successfully using SDK Loader", "success");
-              })
-              .catch(error => {
-                logMessage(`Failed to initialize SDK: ${error.message}`, "error");
-                updateConnectionStatus("disconnected", "Failed to initialize SDK");
-              });
+        .then(ctiInstance => {
+          // Store the cti instance for use throughout the code
+          cti = ctiInstance;
+          logMessage("SDK initialized successfully using SDK Loader", "success");
+        })
+        .catch(error => {
+          logMessage(`Failed to initialize SDK: ${error.message}`, "error");
+          updateConnectionStatus("disconnected", "Failed to initialize SDK");
+        });
     }
   } catch (error) {
     logMessage(`Error during direct initialization: ${error.message}`, "error");
@@ -618,22 +620,22 @@
     // Fall back to the SDK Loader
     logMessage("Falling back to SDK Loader", "warning");
     window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-            .then(ctiInstance => {
-              // Store the cti instance for use throughout the code
-              cti = ctiInstance;
+      .then(ctiInstance => {
+        // Store the cti instance for use throughout the code
+        cti = ctiInstance;
 
-              // Double-check Constants initialization in fallback path
-              if (!cti.Constants && window.Constants) {
-                cti.Constants = window.Constants;
-                logMessage("Constants initialized in fallback path", "success");
-              }
+        // Double-check Constants initialization in fallback path
+        if (!cti.Constants && window.Constants) {
+          cti.Constants = window.Constants;
+          logMessage("Constants initialized in fallback path", "success");
+        }
 
-              logMessage("SDK initialized successfully using SDK Loader", "success");
-            })
-            .catch(fallbackError => {
-              logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
-              updateConnectionStatus("disconnected", "Failed to initialize SDK");
-            });
+        logMessage("SDK initialized successfully using SDK Loader", "success");
+      })
+      .catch(fallbackError => {
+        logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
+        updateConnectionStatus("disconnected", "Failed to initialize SDK");
+      });
   }
 
   // Call Management Functions
@@ -852,8 +854,9 @@
       // Close the modal
       teamsCallModal.style.display = "none";
 
+      window.open(teamsUrl, '_blank');
       // Open the Teams URL in a dedicated window
-      openTeamsUrlSilently(teamsUrl);
+      // openTeamsUrlSilently(teamsUrl);
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
     } catch (error) {
@@ -909,8 +912,8 @@
   endButton.addEventListener("click", () => {
     // Define a fallback value for callEndStatus if cti.Constants is undefined
     const callEndStatus = cti.Constants && cti.Constants.callEndStatus
-            ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
-            : "COMPLETED"; // Fallback value if Constants is undefined
+      ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
+      : "COMPLETED"; // Fallback value if Constants is undefined
 
     // Call the callEnded method with error handling
     try {
@@ -924,7 +927,7 @@
         callEndPromise.catch(error => {
           // Check if it's a 404 error from the terminate endpoint
           if (error && error.message && error.message.includes('404') &&
-                  error.message.includes('terminate')) {
+              error.message.includes('terminate')) {
             logMessage("Warning: Call termination API endpoint returned 404. This may be due to API changes.", "warning");
             logMessage("The call has been ended locally, but HubSpot may not have been notified properly.", "warning");
             logMessage("This won't affect your ability to make or receive calls.", "info");
@@ -1222,8 +1225,8 @@
 
       // Format notes (truncate if too long)
       const notes = call.notes ?
-              (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
-              'No notes';
+        (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
+        'No notes';
 
       // Create row cells
       row.innerHTML = `
