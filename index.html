@@ -498,8 +498,8 @@
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
             // Open the Teams URL using direct protocol handler instead of a new tab
-            // window.open(teamsUrl, '_blank');
-            openTeamsUrlSilently(teamsUrl);
+            window.open(teamsUrl, '_blank');
+            // openTeamsUrlSilently(teamsUrl);
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
@@ -854,8 +854,8 @@
       teamsCallModal.style.display = "none";
 
       // Open the Teams URL using direct protocol handler instead of a new tab
-      // window.open(teamsUrl, '_blank');
-      openTeamsUrlSilently(teamsUrl);
+      window.open(teamsUrl, '_blank');
+      // openTeamsUrlSilently(teamsUrl);
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
     } catch (error) {
