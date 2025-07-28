@@ -474,7 +474,7 @@
           state.externalCallId = externalCallId;
 
           try {
-            // Start the outbound call with proper error handling
+            // Create engagement in HubSpot but reroute the actual call to Microsoft Teams
             cti.outgoingCall({
               externalCallId: externalCallId,
               createEngagement: true, // Create engagement in HubSpot as required
@@ -482,7 +482,21 @@
               toNumber: phoneNumber, // Use the formatted phone number
             });
 
-            logMessage(`Outbound call initiated to: ${phoneNumber}`, "success");
+            logMessage(`HubSpot engagement created for call to: ${phoneNumber}`, "success");
+
+            // Start call timer to track call duration and update UI
+            startCallTimer();
+
+            // Create Teams deep link URL
+            // For PSTN calls, the format should be 4:<phonenumber> without the + prefix
+            const formattedPhoneNumber = phoneNumber.replace('+', '');
+            const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
+            logMessage(`Teams URL created: ${teamsUrl}`, "info");
+
+            // Open the Teams URL in a new window/tab
+            window.open(teamsUrl, '_blank');
+
+            logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
           } catch (error) {
             logMessage(`Error initiating outbound call: ${error.message || 'Unknown error'}`, "error");
