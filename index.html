@@ -497,7 +497,7 @@
             const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
-            // Open the Teams URL using an iframe instead of a new tab
+            // Open the Teams URL using direct protocol handler instead of a new tab
             // window.open(teamsUrl, '_blank');
             openTeamsUrlSilently(teamsUrl);
 
@@ -853,7 +853,7 @@
       // Close the modal
       teamsCallModal.style.display = "none";
 
-      // Open the Teams URL using an iframe instead of a new tab
+      // Open the Teams URL using direct protocol handler instead of a new tab
       // window.open(teamsUrl, '_blank');
       openTeamsUrlSilently(teamsUrl);
 
@@ -1591,14 +1591,15 @@
   }
 
   /**
-   * Helper function to open Teams URL for calling using protocol handler
+   * Helper function to open Teams URL for calling using direct protocol handler
    *
    * This function attempts to launch Microsoft Teams directly using the URL protocol
    * without opening a visible window or using an iframe (which can be blocked by CSP).
    *
-   * The approach uses a combination of techniques:
-   * 1. First tries a direct location change with a timeout to restore the original page
-   * 2. Falls back to window.open() if the direct approach fails
+   * The approach uses a direct protocol handler approach:
+   * 1. Uses window.location.href to directly navigate to the Teams URL
+   * 2. Immediately restores the original page using history.back()
+   * 3. Falls back to window.open() if the direct approach fails
    *
    * Limitations and considerations:
    * 1. Browser security: Some browsers may block protocol handlers
@@ -1607,34 +1608,33 @@
    * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL with protocol handler: ${url}`, "info");
+    logMessage(`Opening Teams URL with direct protocol handler: ${url}`, "info");
 
     try {
       // Store the current URL to return to after attempting to launch Teams
       const currentUrl = window.location.href;
 
-      // Create a clickable anchor element (more reliable than direct location change)
-      const link = document.createElement('a');
-      link.href = url;
-      link.style.display = 'none';
-      document.body.appendChild(link);
+      // Use a direct approach without creating DOM elements
+      // This avoids any potential CSP issues with iframes or frames
+      const originalUrl = window.location.href;
 
-      // Simulate a click on the link to trigger the protocol handler
-      link.click();
+      // Navigate directly to the Teams URL
+      window.location.href = url;
 
-      logMessage("Teams protocol handler triggered", "info");
-
-      // Clean up the link element
+      // Immediately go back to prevent page navigation
       setTimeout(() => {
-        if (link && link.parentNode) {
-          document.body.removeChild(link);
+        // Only go back if we actually navigated away
+        if (window.location.href !== originalUrl) {
+          history.back();
         }
         logMessage("Teams application may have launched", "success");
-      }, 1000);
-    } catch (error) {
-      logMessage(`Error using protocol handler: ${error.message}`, "error");
+      }, 100);
 
-      // Fallback to window.open if the protocol handler approach fails
+      logMessage("Direct protocol handler triggered", "info");
+    } catch (error) {
+      logMessage(`Error using direct protocol handler: ${error.message}`, "error");
+
+      // Fallback to window.open if the direct approach fails
       logMessage("Falling back to window.open method", "warning");
       try {
         const teamsWindow = window.open(url, '_blank');
