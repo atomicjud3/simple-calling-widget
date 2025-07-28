@@ -488,8 +488,12 @@
             startCallTimer();
 
             // Create Teams deep link URL
-            // For PSTN calls, the format should be 4:<phonenumber> without the + prefix
-            const formattedPhoneNumber = phoneNumber.replace('+', '');
+            // For PSTN calls, the format should be 4:<phonenumber> without the + prefix and country code
+            let formattedPhoneNumber = phoneNumber.replace('+', '');
+            // Remove the country code "61" if it's at the beginning of the number
+            if (formattedPhoneNumber.startsWith('61')) {
+              formattedPhoneNumber = formattedPhoneNumber.substring(2);
+            }
             const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
@@ -836,8 +840,12 @@
       logMessage(`Formatted phone number: ${phoneNumber}`, "info");
 
       // Create Teams deep link URL
-      // For PSTN calls, the format should be 4:<phonenumber> without the + prefix
-      const formattedPhoneNumber = phoneNumber.replace('+', '');
+      // For PSTN calls, the format should be 4:<phonenumber> without the + prefix and country code
+      let formattedPhoneNumber = phoneNumber.replace('+', '');
+      // Remove the country code "61" if it's at the beginning of the number
+      if (formattedPhoneNumber.startsWith('61')) {
+        formattedPhoneNumber = formattedPhoneNumber.substring(2);
+      }
       const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
       logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
