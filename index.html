@@ -787,6 +787,12 @@
     // Show the Teams call modal
     teamsCallModal.style.display = "block";
 
+    // Pre-populate the input field with the number from onDialNumber if available
+    if (state.toNumber) {
+      teamsCallNumberInput.value = state.toNumber;
+      logMessage(`Pre-populated Teams call number with: ${state.toNumber}`, "info");
+    }
+
     // Focus the input field
     teamsCallNumberInput.focus();
 
