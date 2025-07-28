@@ -497,8 +497,8 @@
             const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
-            // Open the Teams URL in a new window/tab
-            // window.open(teamsUrl, '_blank');
+            // Open the Teams URL silently using a hidden iframe
+            openTeamsUrlSilently(teamsUrl);
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
@@ -852,8 +852,8 @@
       // Close the modal
       teamsCallModal.style.display = "none";
 
-      // Open the Teams URL in a new window/tab
-      window.open(teamsUrl, '_blank');
+      // Open the Teams URL silently using a hidden iframe
+      openTeamsUrlSilently(teamsUrl);
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
     } catch (error) {
@@ -1585,6 +1585,50 @@
 
       // Show success message
       logMessage(`Call transferred to ${transferNumber}`, "success");
+    }
+  }
+
+  /**
+   * Helper function to silently open Teams URL using a hidden iframe
+   *
+   * This approach avoids opening a new tab or replacing the current tab when initiating Teams calls.
+   * It works by creating a hidden iframe and setting its src to the Teams URL, which triggers
+   * the Teams protocol handler without changing the user's current browser context.
+   *
+   * Limitations and considerations:
+   * 1. Browser security: Some browsers may block protocol handlers in iframes or require user permission
+   * 2. Silent operation: No visual feedback is provided to the user that Teams is being launched
+   * 3. Compatibility: This approach may not work in all browsers or with all Teams versions
+   * 4. User experience: The user may still see Teams launching, but without the browser tab disruption
+   *
+   * @param {string} url - The Teams URL to open silently
+   */
+  function openTeamsUrlSilently(url) {
+    logMessage(`Opening Teams URL silently: ${url}`, "info");
+
+    try {
+      // Create a hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      // Set the iframe src to the Teams URL
+      iframe.src = url;
+
+      // Remove the iframe after a short delay
+      setTimeout(() => {
+        if (iframe && iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 2000);
+
+      logMessage("Teams URL opened silently via hidden iframe", "success");
+    } catch (error) {
+      logMessage(`Error opening Teams URL silently: ${error.message}`, "error");
+
+      // Fallback to window.open if the iframe approach fails
+      logMessage("Falling back to window.open method", "warning");
+      window.open(url, '_blank');
     }
   }
 
