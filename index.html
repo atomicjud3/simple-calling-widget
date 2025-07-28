@@ -1591,31 +1591,37 @@
   /**
    * Helper function to open Teams URL for calling
    *
-   * This function attempts to silently trigger the Microsoft Teams app using a hidden iframe.
+   * This function creates a visible iframe to trigger the Microsoft Teams app.
+   * The iframe is displayed for 1-2 seconds and then hidden.
    * While Teams UI cannot be embedded in an iframe due to Content Security Policy restrictions,
-   * the hidden iframe approach may still trigger the Teams protocol handler without visual disruption.
+   * the iframe approach may still trigger the Teams protocol handler.
    *
    * If the iframe approach fails, it falls back to the window.open method.
    *
    * Limitations and considerations:
    * 1. Browser security: Some browsers may block protocol handlers in iframes
-   * 2. Silent operation: This approach attempts to launch Teams without opening a new tab
+   * 2. Visual feedback: The iframe is briefly visible to provide feedback to the user
    * 3. Compatibility: May not work in all browsers or with all Teams versions
    *
    * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL silently: ${url}`, "info");
+    logMessage(`Opening Teams URL with visible iframe: ${url}`, "info");
 
     try {
-      // Create a hidden iframe
+      // Create a visible iframe
       const iframe = document.createElement('iframe');
-      iframe.style.display = 'none'; // Hide the iframe
-      iframe.style.position = 'absolute';
-      iframe.style.top = '-1000px';
-      iframe.style.left = '-1000px';
-      iframe.style.width = '1px';
-      iframe.style.height = '1px';
+      // Make the iframe visible with styling
+      iframe.style.position = 'fixed';
+      iframe.style.top = '50%';
+      iframe.style.left = '50%';
+      iframe.style.transform = 'translate(-50%, -50%)';
+      iframe.style.width = '400px';
+      iframe.style.height = '300px';
+      iframe.style.border = '2px solid #007bff';
+      iframe.style.borderRadius = '8px';
+      iframe.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+      iframe.style.zIndex = '9999';
 
       // Add the iframe to the document
       document.body.appendChild(iframe);
@@ -1623,18 +1629,26 @@
       // Set the iframe src to the Teams URL
       iframe.src = url;
 
-      logMessage("Hidden iframe created to trigger Teams app", "info");
-      logMessage("Teams URL opened silently via hidden iframe", "success");
+      logMessage("Visible iframe created to trigger Teams app", "info");
+      logMessage("Teams URL opened in visible iframe", "success");
+
+      // Hide the iframe after 1.5 seconds
+      setTimeout(() => {
+        if (iframe && iframe.parentNode) {
+          iframe.style.display = 'none';
+          logMessage("Iframe hidden after display period", "info");
+        }
+      }, 1500);
 
       // Remove the iframe after a short delay
       setTimeout(() => {
         if (iframe && iframe.parentNode) {
           document.body.removeChild(iframe);
-          logMessage("Hidden iframe removed", "info");
+          logMessage("Iframe removed from document", "info");
         }
       }, 2000);
     } catch (error) {
-      logMessage(`Error using hidden iframe: ${error.message}`, "error");
+      logMessage(`Error using visible iframe: ${error.message}`, "error");
 
       // Fallback to window.open if the iframe approach fails
       logMessage("Falling back to window.open method", "warning");
