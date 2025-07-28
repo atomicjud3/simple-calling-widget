@@ -1592,7 +1592,8 @@
    * Helper function to open Teams URL for calling
    *
    * This function creates a visible iframe to trigger the Microsoft Teams app.
-   * The iframe is displayed for 1-2 seconds and then hidden.
+   * The iframe remains visible until the user clicks the "Start Call" button in Teams
+   * or manually closes it using the provided close button.
    * While Teams UI cannot be embedded in an iframe due to Content Security Policy restrictions,
    * the iframe approach may still trigger the Teams protocol handler.
    *
@@ -1600,7 +1601,7 @@
    *
    * Limitations and considerations:
    * 1. Browser security: Some browsers may block protocol handlers in iframes
-   * 2. Visual feedback: The iframe is briefly visible to provide feedback to the user
+   * 2. Visual feedback: The iframe remains visible until user interaction
    * 3. Compatibility: May not work in all browsers or with all Teams versions
    *
    * @param {string} url - The Teams URL to open
@@ -1609,22 +1610,67 @@
     logMessage(`Opening Teams URL with visible iframe: ${url}`, "info");
 
     try {
+      // Create a container div for the iframe and close button
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '50%';
+      container.style.left = '50%';
+      container.style.transform = 'translate(-50%, -50%)';
+      container.style.width = '400px';
+      container.style.zIndex = '9999';
+      container.style.backgroundColor = 'white';
+      container.style.borderRadius = '8px';
+      container.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+      container.style.overflow = 'hidden';
+
+      // Create a header with instructions and close button
+      const header = document.createElement('div');
+      header.style.padding = '10px';
+      header.style.backgroundColor = '#007bff';
+      header.style.color = 'white';
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+
+      // Add instructions
+      const title = document.createElement('div');
+      title.textContent = 'Microsoft Teams Call';
+      title.style.fontWeight = 'bold';
+
+      // Create close button
+      const closeButton = document.createElement('button');
+      closeButton.textContent = '×';
+      closeButton.style.background = 'none';
+      closeButton.style.border = 'none';
+      closeButton.style.color = 'white';
+      closeButton.style.fontSize = '20px';
+      closeButton.style.cursor = 'pointer';
+      closeButton.style.padding = '0 5px';
+
+      // Add elements to header
+      header.appendChild(title);
+      header.appendChild(closeButton);
+
+      // Add instructions below header
+      const instructions = document.createElement('div');
+      instructions.style.padding = '10px';
+      instructions.style.backgroundColor = '#f8f9fa';
+      instructions.style.borderBottom = '1px solid #dee2e6';
+      instructions.innerHTML = 'Please click <strong>Start Call</strong> in Microsoft Teams.<br>This window will close automatically when you start the call.';
+
       // Create a visible iframe
       const iframe = document.createElement('iframe');
-      // Make the iframe visible with styling
-      iframe.style.position = 'fixed';
-      iframe.style.top = '50%';
-      iframe.style.left = '50%';
-      iframe.style.transform = 'translate(-50%, -50%)';
-      iframe.style.width = '400px';
+      iframe.style.width = '100%';
       iframe.style.height = '300px';
-      iframe.style.border = '2px solid #007bff';
-      iframe.style.borderRadius = '8px';
-      iframe.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-      iframe.style.zIndex = '9999';
+      iframe.style.border = 'none';
 
-      // Add the iframe to the document
-      document.body.appendChild(iframe);
+      // Add elements to container
+      container.appendChild(header);
+      container.appendChild(instructions);
+      container.appendChild(iframe);
+
+      // Add the container to the document
+      document.body.appendChild(container);
 
       // Set the iframe src to the Teams URL
       iframe.src = url;
@@ -1632,21 +1678,68 @@
       logMessage("Visible iframe created to trigger Teams app", "info");
       logMessage("Teams URL opened in visible iframe", "success");
 
-      // Hide the iframe after 1.5 seconds
-      setTimeout(() => {
-        if (iframe && iframe.parentNode) {
-          iframe.style.display = 'none';
-          logMessage("Iframe hidden after display period", "info");
+      // Close button event handler
+      closeButton.addEventListener('click', () => {
+        if (container && container.parentNode) {
+          document.body.removeChild(container);
+          logMessage("Iframe closed by user", "info");
         }
-      }, 1500);
+      });
 
-      // Remove the iframe after a short delay
-      setTimeout(() => {
-        if (iframe && iframe.parentNode) {
-          document.body.removeChild(iframe);
-          logMessage("Iframe removed from document", "info");
+      // Add a "Call Started" button for the user to click after they've started the call in Teams
+      const callStartedButton = document.createElement('button');
+      callStartedButton.textContent = 'I\'ve Started the Call';
+      callStartedButton.style.width = '100%';
+      callStartedButton.style.padding = '10px';
+      callStartedButton.style.backgroundColor = '#28a745';
+      callStartedButton.style.color = 'white';
+      callStartedButton.style.border = 'none';
+      callStartedButton.style.borderTop = '1px solid #dee2e6';
+      callStartedButton.style.cursor = 'pointer';
+      callStartedButton.style.fontWeight = 'bold';
+
+      // Add the button to the container
+      container.appendChild(callStartedButton);
+
+      // Call started button event handler
+      callStartedButton.addEventListener('click', () => {
+        if (container && container.parentNode) {
+          document.body.removeChild(container);
+          logMessage("Iframe closed after user confirmed call started", "success");
         }
-      }, 2000);
+      });
+
+      // Try to detect when Teams has launched
+      // This is a best-effort approach as direct detection is limited by browser security
+      let teamsLaunchAttempts = 0;
+      const maxAttempts = 10;
+      const checkTeamsLaunch = setInterval(() => {
+        teamsLaunchAttempts++;
+
+        // Check if the iframe has been redirected or blocked
+        try {
+          // This will throw an error if the iframe has navigated to a different origin
+          // due to cross-origin restrictions
+          const iframeLocation = iframe.contentWindow.location.href;
+          logMessage(`Iframe still accessible at attempt ${teamsLaunchAttempts}`, "info");
+        } catch (e) {
+          // If we get here, the iframe has likely been redirected to Teams
+          logMessage("Teams application may have launched (iframe redirected)", "success");
+          // Don't clear the interval yet, as we want to give Teams time to fully launch
+        }
+
+        // After max attempts, remind the user to click the button
+        if (teamsLaunchAttempts >= maxAttempts) {
+          clearInterval(checkTeamsLaunch);
+
+          // Update instructions to prompt user to confirm
+          instructions.innerHTML = '<strong>If your call has started in Microsoft Teams, please click the button below.</strong><br>Otherwise, you can close this window using the X button.';
+          instructions.style.backgroundColor = '#fff3cd';
+          instructions.style.color = '#856404';
+
+          logMessage("Reached maximum attempts to detect Teams launch", "info");
+        }
+      }, 1000);
     } catch (error) {
       logMessage(`Error using visible iframe: ${error.message}`, "error");
 
