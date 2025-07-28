@@ -497,7 +497,7 @@
             const teamsUrl = `https://teams.microsoft.com/l/call/0/0?users=4:${formattedPhoneNumber}`;
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
-            // Open the Teams URL silently using a hidden iframe
+            // Open the Teams URL in a dedicated window
             openTeamsUrlSilently(teamsUrl);
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
@@ -852,7 +852,7 @@
       // Close the modal
       teamsCallModal.style.display = "none";
 
-      // Open the Teams URL silently using a hidden iframe
+      // Open the Teams URL in a dedicated window
       openTeamsUrlSilently(teamsUrl);
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
@@ -1589,46 +1589,54 @@
   }
 
   /**
-   * Helper function to silently open Teams URL using a hidden iframe
+   * Helper function to open Teams URL for calling
    *
-   * This approach avoids opening a new tab or replacing the current tab when initiating Teams calls.
-   * It works by creating a hidden iframe and setting its src to the Teams URL, which triggers
-   * the Teams protocol handler without changing the user's current browser context.
+   * This function handles opening Microsoft Teams URLs for initiating calls.
+   * Due to Content Security Policy restrictions, Teams cannot be embedded in an iframe
+   * from external domains (only 'self' and 'login.microsoftonline.com' are allowed).
    *
-   * Limitations and considerations:
-   * 1. Browser security: Some browsers may block protocol handlers in iframes or require user permission
-   * 2. Silent operation: No visual feedback is provided to the user that Teams is being launched
-   * 3. Compatibility: This approach may not work in all browsers or with all Teams versions
-   * 4. User experience: The user may still see Teams launching, but without the browser tab disruption
+   * The function uses window.open with specific parameters to provide the best user experience:
+   * - Opens in a new window that's sized appropriately for a call dialog
+   * - Uses the '_blank' target to avoid disrupting the current application
+   * - Provides a window name to potentially reuse the same window for subsequent calls
    *
-   * @param {string} url - The Teams URL to open silently
+   * @param {string} url - The Teams URL to open
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL silently: ${url}`, "info");
+    logMessage(`Opening Teams URL: ${url}`, "info");
 
     try {
-      // Create a hidden iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
+      // Use window.open with specific parameters for better user experience
+      // - 'width=400,height=600': Creates a reasonably sized window for a call dialog
+      // - 'teamsCallWindow': Names the window so subsequent calls might reuse it
+      const teamsWindow = window.open(url, 'teamsCallWindow', 'width=400,height=600');
 
-      // Set the iframe src to the Teams URL
-      iframe.src = url;
+      if (teamsWindow) {
+        logMessage("Teams URL opened in a new window", "success");
 
-      // Remove the iframe after a short delay
-      setTimeout(() => {
-        if (iframe && iframe.parentNode) {
-          document.body.removeChild(iframe);
-        }
-      }, 2000);
+        // Focus the window to bring it to the front
+        teamsWindow.focus();
 
-      logMessage("Teams URL opened silently via hidden iframe", "success");
+        // Optional: You could add code here to detect when the window is closed
+        // and perform any cleanup or state updates
+      } else {
+        // This happens if pop-up windows are blocked
+        logMessage("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.", "error");
+
+        // Provide user instructions
+        alert("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.");
+      }
     } catch (error) {
-      logMessage(`Error opening Teams URL silently: ${error.message}`, "error");
+      logMessage(`Error opening Teams URL: ${error.message}`, "error");
 
-      // Fallback to window.open if the iframe approach fails
-      logMessage("Falling back to window.open method", "warning");
-      window.open(url, '_blank');
+      // Fallback to basic window.open without parameters
+      try {
+        window.open(url, '_blank');
+        logMessage("Teams URL opened using fallback method", "warning");
+      } catch (fallbackError) {
+        logMessage(`Fallback also failed: ${fallbackError.message}`, "error");
+        alert("Unable to open Microsoft Teams. Please try again or copy this URL: " + url);
+      }
     }
   }
 
