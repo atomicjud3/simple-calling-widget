@@ -158,10 +158,10 @@
 </head>
 <body>
 <div id="widget-container">
-  <h1>HubSpot Calling Widget</h1>
+<!--  <h1>Teams Calling</h1>-->
+  <img src="image/call.png" alt="Call Image" height="200" width="200" />
 
-
-  <p>Simulate calling actions using the buttons below:</p>
+<!--  <p>Simulate calling actions using the buttons below:</p>-->
   <button id="login-btn" class="primary-button">Log In</button>
   <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
   <button id="outbound-btn" class="primary-button success-button">Outbound Call</button>
@@ -498,8 +498,8 @@
             logMessage(`Teams URL created: ${teamsUrl}`, "info");
 
             // Open the Teams URL using direct protocol handler instead of a new tab
-            window.open(teamsUrl, '_blank');
-            // openTeamsUrlSilently(teamsUrl);
+            // window.open(teamsUrl, '_blank');
+            openTeamsUrlSilently(teamsUrl);
 
             logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
             enableButtons([endButton]);
@@ -854,8 +854,8 @@
       teamsCallModal.style.display = "none";
 
       // Open the Teams URL using direct protocol handler instead of a new tab
-      window.open(teamsUrl, '_blank');
-      // openTeamsUrlSilently(teamsUrl);
+      // window.open(teamsUrl, '_blank');
+      openTeamsUrlSilently(teamsUrl);
 
       logMessage(`Teams call initiated to: ${phoneNumber}`, "success");
     } catch (error) {
@@ -1591,97 +1591,54 @@
   }
 
   /**
-   * Helper function to open Teams URL for calling using direct protocol handler
+   * Helper function to open Teams URL for calling silently
    *
-   * This function attempts to launch Microsoft Teams directly using the URL protocol
-   * without opening a visible window or using an iframe (which can be blocked by CSP).
+   * This function creates a hidden anchor tag with the Teams protocol URL
+   * and programmatically clicks it to launch Teams. It also provides a fallback
+   * using an invisible off-screen window that triggers the Teams app redirect.
    *
-   * The approach uses window.open with the teams: protocol, which requires a user gesture
-   * but is the most reliable way to launch the Teams application across browsers.
+   * This implementation works on both Mac and Windows platforms.
    *
-   * Limitations and considerations:
-   * 1. Browser security: Requires a user gesture (click, tap) to work properly
-   * 2. Compatibility: May not work in all browsers or with all Teams versions
-   *
-   * @param {string} url - The Teams URL to open
+   * @param {string} url - The Teams web URL to open (https://teams.microsoft.com/...)
    */
   function openTeamsUrlSilently(url) {
-    logMessage(`Opening Teams URL with teams protocol handler: ${url}`, "info");
+    logMessage(`Opening Teams URL silently: ${url}`, "info");
 
     try {
-      // Show a modal dialog to inform the user about the Teams call
-      const teamsLaunchModal = document.createElement('div');
-      teamsLaunchModal.style.position = 'fixed';
-      teamsLaunchModal.style.top = '50%';
-      teamsLaunchModal.style.left = '50%';
-      teamsLaunchModal.style.transform = 'translate(-50%, -50%)';
-      teamsLaunchModal.style.backgroundColor = 'white';
-      teamsLaunchModal.style.padding = '20px';
-      teamsLaunchModal.style.borderRadius = '5px';
-      teamsLaunchModal.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-      teamsLaunchModal.style.zIndex = '9999';
-      teamsLaunchModal.style.maxWidth = '400px';
-      teamsLaunchModal.style.textAlign = 'center';
+      // Convert web URL to protocol URL (from https://teams.microsoft.com/... to msteams://...)
+      const protocolUrl = url.replace('https://teams.microsoft.com/', 'msteams://');
+      logMessage(`protocolUrl : ${protocolUrl}`, "info");
 
-      teamsLaunchModal.innerHTML = `
-        <h3 style="margin-top: 0;">Launching Microsoft Teams</h3>
-        <p>Click the button below to start your call in Microsoft Teams.</p>
-        <p style="font-size: 12px; color: #666;">If Teams doesn't open automatically, you may need to allow this site to open external applications.</p>
-        <button id="launch-teams-btn" style="background-color: #464EB8; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">Launch Teams Call</button>
-        <button id="cancel-teams-btn" style="background-color: #f1f1f1; color: #333; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px; margin-left: 10px;">Cancel</button>
-      `;
+      // Create a hidden anchor element with the Teams protocol URL
+      const teamsLink = document.createElement('a');
+      teamsLink.href = protocolUrl;
+      teamsLink.id = 'teamsLinkTemp';
+      teamsLink.style.display = 'none';
+      document.body.appendChild(teamsLink);
 
-      document.body.appendChild(teamsLaunchModal);
+      // Click the link to launch Teams app
+      teamsLink.click();
 
-      // Convert the https URL to a teams protocol URL
-      // This avoids any CSP issues completely as we're using the native protocol
-      const teamsProtocolUrl = url.replace('https:', 'teams:');
+      // Remove the temporary link
+      setTimeout(() => {
+        document.body.removeChild(teamsLink);
+      }, 100);
 
-      // Add event listener to the launch button
-      document.getElementById('launch-teams-btn').addEventListener('click', function() {
-        // Use window.open with the teams: protocol URL
-        // This will work because it's triggered by a direct user gesture (click)
-        window.open(teamsProtocolUrl, '_self');
+      // Open a completely invisible window off-screen
+      const win = window.open(url, "_blank", "width=10,height=10,right=-100000,bottom=-100000,toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,titlebar=no");
 
-        // Remove the modal after a short delay
-        setTimeout(() => {
-          if (teamsLaunchModal && teamsLaunchModal.parentNode) {
-            document.body.removeChild(teamsLaunchModal);
-          }
-        }, 500);
-
-        logMessage("Teams protocol handler triggered by user click", "info");
-        logMessage("Teams application may have launched", "success");
-      });
-
-      // Add event listener to the cancel button
-      document.getElementById('cancel-teams-btn').addEventListener('click', function() {
-        // Remove the modal
-        if (teamsLaunchModal && teamsLaunchModal.parentNode) {
-          document.body.removeChild(teamsLaunchModal);
-        }
-        logMessage("Teams call canceled by user", "info");
-      });
+      // Close the window after a short delay to trigger the Teams app redirect
+      setTimeout(() => {
+        win?.close();
+        logMessage("Teams application should now be launching X1", "success");
+      }, 3000); // Let it run briefly to trigger app redirect
 
     } catch (error) {
-      logMessage(`Error using teams protocol handler: ${error.message}`, "error");
+      logMessage(`Error opening Teams URL: ${error.message}`, "error");
 
-      // Fallback to regular https window.open if the protocol handler fails
-      logMessage("Falling back to window.open method with https URL", "warning");
-      try {
-        const teamsWindow = window.open(url, '_blank');
-
-        if (teamsWindow) {
-          logMessage("Teams URL opened in a new window (fallback)", "success");
-          teamsWindow.focus();
-        } else {
-          logMessage("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.", "error");
-          alert("Pop-up blocked. Please allow pop-ups for this site to make Teams calls.");
-        }
-      } catch (fallbackError) {
-        logMessage(`Fallback also failed: ${fallbackError.message}`, "error");
-        alert("Unable to open Microsoft Teams. Please try again or copy this URL: " + url);
-      }
+      // Fallback if the primary method fails
+      logMessage("Falling back to direct browser open", "warning");
+      window.open(url, "_blank");
     }
   }
 
