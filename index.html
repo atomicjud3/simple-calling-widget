@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HubSpot Calling Widget </title>
+  <title>Teams Calling</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📞</text></svg>" />
   <style>
     body {
@@ -17,12 +17,16 @@
       background-color: #f4f4f4;
     }
     #widget-container {
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       background: #ffffff;
       border: 1px solid #ddd;
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       width: 400px;
+      height: 400px;
       padding: 20px;
     }
     button {
@@ -96,112 +100,114 @@
     .log-info {
       color: #007bff;
     }
-  /* Modal styles */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
 
-  .modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 80%;
-    max-width: 500px;
-  }
+    .modal-content {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 500px;
+    }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
 
-  .modal-header h3 {
-    margin: 0;
-  }
+    .modal-header h3 {
+      margin: 0;
+    }
 
-  .close {
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-  }
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-  .close:hover {
-    color: #000;
-  }
+    .close:hover {
+      color: #000;
+    }
 
-  .modal-body {
-    margin-bottom: 15px;
-  }
+    .modal-body {
+      margin-bottom: 15px;
+    }
 
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-  }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+    }
 
-  /* Blinking animation for recording indicator */
-  @keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
-  }
+    /* Blinking animation for recording indicator */
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
 <div id="widget-container">
-<!--  <h1>Teams Calling</h1>-->
+  <!--  <h1>Teams Calling</h1>-->
   <img src="image/call.png" alt="Call Image" height="200" width="200" />
 
-<!--  <p>Simulate calling actions using the buttons below:</p>-->
-  <button id="login-btn" class="primary-button">Log In</button>
-  <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
-  <button id="outbound-btn" class="primary-button success-button">Outbound Call</button>
-  <button id="teams-call-btn" class="primary-button success-button">Teams Call</button>
-  <button id="incoming-btn" class="primary-button success-button">Incoming Call</button>
-  <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
-  <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
-  <button id="resize-btn" class="primary-button">Resize Widget</button>
-  <button id="test-connection-btn" class="primary-button">Test Connection V1.0</button>
-  <button id="history-btn" class="primary-button">Call History</button>
+  <!--
+    <p>Simulate calling actions using the buttons below:</p>
+    <button id="login-btn" class="primary-button">Log In</button>
+    <button id="logout-btn" class="primary-button danger-button" disabled>Log Out</button>
+    <button id="outbound-btn" class="primary-button success-button">Outbound Call</button>
+    <button id="teams-call-btn" class="primary-button success-button">Teams Call</button>
+    <button id="incoming-btn" class="primary-button success-button">Incoming Call</button>
+    <button id="answer-btn" class="primary-button success-button" disabled>Answer Call</button>
+    <button id="end-btn" class="primary-button danger-button" disabled>End Call</button>
+    <button id="resize-btn" class="primary-button">Resize Widget</button>
+    <button id="test-connection-btn" class="primary-button">Test Connection V1.0</button>
+    <button id="history-btn" class="primary-button">Call History</button>
+    -->
 
   <!-- Call History View -->
-  <div class="status-container" id="call-history-container" style="display: none; max-height: 300px; overflow-y: auto;">
-    <h3>Call History</h3>
-    <div id="call-history-list">
-      <p>No call history available.</p>
-    </div>
-  </div>
+  <!--  <div class="status-container" id="call-history-container" style="display: none; max-height: 300px; overflow-y: auto;">-->
+  <!--    <h3>Call History</h3>-->
+  <!--    <div id="call-history-list">-->
+  <!--      <p>No call history available.</p>-->
+  <!--    </div>-->
+  <!--  </div>-->
 
   <!-- Recordings View -->
-  <div class="status-container" id="recordings-container" style="display: none; max-height: 300px; overflow-y: auto;">
-    <h3>Recordings</h3>
-    <div id="recordings-list">
-      <p>No recordings available.</p>
-    </div>
-    <button id="recordings-btn" class="primary-button">Show Recordings</button>
-  </div>
+  <!--  <div class="status-container" id="recordings-container" style="display: none; max-height: 300px; overflow-y: auto;">-->
+  <!--    <h3>Recordings</h3>-->
+  <!--    <div id="recordings-list">-->
+  <!--      <p>No recordings available.</p>-->
+  <!--    </div>-->
+  <!--    <button id="recordings-btn" class="primary-button">Show Recordings</button>-->
+  <!--  </div>-->
 
-  <!-- Status container for connectivity troubleshooting as specified in "Debug and Refine the Flow" section -->
-  <div class="status-container">
-    <h3>Connection Status</h3>
-    <div>
-      <span class="status-indicator status-pending" id="connection-status"></span>
-      <span id="status-text">Initializing...</span>
-    </div>
-    <div>
-      <p>Portal ID: <span id="portal-id">Not connected</span></p>
-      <p>User ID: <span id="user-id">Not connected</span></p>
-    </div>
-  </div>
+  <!--  &lt;!&ndash; Status container for connectivity troubleshooting as specified in "Debug and Refine the Flow" section &ndash;&gt;-->
+  <!--  <div class="status-container">-->
+  <!--    <h3>Connection Status</h3>-->
+  <!--    <div>-->
+  <!--      <span class="status-indicator status-pending" id="connection-status"></span>-->
+  <!--      <span id="status-text">Initializing...</span>-->
+  <!--    </div>-->
+  <!--    <div>-->
+  <!--      <p>Portal ID: <span id="portal-id">Not connected</span></p>-->
+  <!--      <p>User ID: <span id="user-id">Not connected</span></p>-->
+  <!--    </div>-->
+  <!--  </div>-->
 
   <!-- Call status container for call management features -->
   <div class="status-container" id="call-status-container" style="display: none;">
@@ -238,9 +244,9 @@
   </div>
 
   <!-- Debug log area for enhanced error handling as specified in "Debug and Refine the Flow" section -->
-  <div class="debug-log" id="debug-log">
-    <div class="log-entry log-info">Initializing HubSpot Calling Widget...</div>
-  </div>
+  <!--  <div class="debug-log" id="debug-log">-->
+  <!--    <div class="log-entry log-info">Initializing HubSpot Calling Widget...</div>-->
+  <!--  </div>-->
 </div>
 
 <!-- Call Notes Modal -->
@@ -311,7 +317,7 @@
     // Check if it's a 404 error from the terminate endpoint
     const error = event.reason;
     if (error && error.message && error.message.includes('404') &&
-        error.message.includes('terminate')) {
+            error.message.includes('terminate')) {
       console.log('[DEBUG_LOG] Caught unhandled promise rejection: Call termination API endpoint returned 404');
       console.log('[DEBUG_LOG] This may be due to API changes in HubSpot. The call has been ended locally.');
 
@@ -352,13 +358,17 @@
 
     // Add to UI debug log
     const debugLog = document.getElementById("debug-log");
-    const logEntry = document.createElement("div");
-    logEntry.className = `log-entry log-${type}`;
-    logEntry.textContent = message;
-    debugLog.appendChild(logEntry);
 
-    // Auto-scroll to bottom
-    debugLog.scrollTop = debugLog.scrollHeight;
+    // Only proceed if debugLog element exists
+    if (debugLog) {
+      const logEntry = document.createElement("div");
+      logEntry.className = `log-entry log-${type}`;
+      logEntry.textContent = message;
+      debugLog.appendChild(logEntry);
+
+      // Auto-scroll to bottom
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
   }
 
   // Update connection status UI
@@ -369,24 +379,35 @@
     const portalIdElement = document.getElementById("portal-id");
     const userIdElement = document.getElementById("user-id");
 
-    // Remove all status classes
-    statusIndicator.classList.remove("status-connected", "status-disconnected", "status-pending");
-
-    // Add appropriate class
-    statusIndicator.classList.add(`status-${status}`);
-
-    // Update status text
-    statusText.textContent = message;
-
-    // Update state
+    // Update state regardless of UI elements
     state.connectionStatus = status;
     state.isConnected = status === "connected";
 
-    // Update IDs if connected
-    if (status === "connected") {
-      portalIdElement.textContent = state.portalId || "Unknown";
-      userIdElement.textContent = state.userId || "Unknown";
+    // Only update UI elements if they exist
+    if (statusIndicator) {
+      // Remove all status classes
+      statusIndicator.classList.remove("status-connected", "status-disconnected", "status-pending");
+      // Add appropriate class
+      statusIndicator.classList.add(`status-${status}`);
     }
+
+    // Update status text if element exists
+    if (statusText) {
+      statusText.textContent = message;
+    }
+
+    // Update IDs if connected and elements exist
+    if (status === "connected") {
+      if (portalIdElement) {
+        portalIdElement.textContent = state.portalId || "Unknown";
+      }
+      if (userIdElement) {
+        userIdElement.textContent = state.userId || "Unknown";
+      }
+    }
+
+    // Log the status update for debugging
+    logMessage(`Connection status updated: ${status} - ${message}`, "info");
   }
 
   // Initialize Calling Extensions SDK using the SDK Loader
@@ -577,6 +598,25 @@
             success: true
           };
         },
+        // Add handler for VISIBILITY_CHANGED event
+        onVisibilityChanged: (data) => {
+          logMessage(`Visibility changed event received: ${JSON.stringify(data)}`, "info");
+
+          // Handle visibility change (widget being shown or hidden)
+          const isVisible = data?.isVisible;
+
+          if (isVisible !== undefined) {
+            logMessage(`Widget visibility is now: ${isVisible ? 'visible' : 'hidden'}`, "info");
+
+            // You can add additional logic here based on visibility changes
+            // For example, pause certain operations when hidden, resume when visible
+          }
+
+          // Return a response to HubSpot to acknowledge the event
+          return {
+            success: true
+          };
+        },
       },
     }
   };
@@ -603,15 +643,15 @@
       // If direct initialization fails, fall back to the SDK Loader
       logMessage("Direct initialization failed, falling back to SDK Loader", "warning");
       window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-        .then(ctiInstance => {
-          // Store the cti instance for use throughout the code
-          cti = ctiInstance;
-          logMessage("SDK initialized successfully using SDK Loader", "success");
-        })
-        .catch(error => {
-          logMessage(`Failed to initialize SDK: ${error.message}`, "error");
-          updateConnectionStatus("disconnected", "Failed to initialize SDK");
-        });
+              .then(ctiInstance => {
+                // Store the cti instance for use throughout the code
+                cti = ctiInstance;
+                logMessage("SDK initialized successfully using SDK Loader", "success");
+              })
+              .catch(error => {
+                logMessage(`Failed to initialize SDK: ${error.message}`, "error");
+                updateConnectionStatus("disconnected", "Failed to initialize SDK");
+              });
     }
   } catch (error) {
     logMessage(`Error during direct initialization: ${error.message}`, "error");
@@ -619,22 +659,22 @@
     // Fall back to the SDK Loader
     logMessage("Falling back to SDK Loader", "warning");
     window.HubSpotSDKLoader.initializeSDK(sdkOptions)
-      .then(ctiInstance => {
-        // Store the cti instance for use throughout the code
-        cti = ctiInstance;
+            .then(ctiInstance => {
+              // Store the cti instance for use throughout the code
+              cti = ctiInstance;
 
-        // Double-check Constants initialization in fallback path
-        if (!cti.Constants && window.Constants) {
-          cti.Constants = window.Constants;
-          logMessage("Constants initialized in fallback path", "success");
-        }
+              // Double-check Constants initialization in fallback path
+              if (!cti.Constants && window.Constants) {
+                cti.Constants = window.Constants;
+                logMessage("Constants initialized in fallback path", "success");
+              }
 
-        logMessage("SDK initialized successfully using SDK Loader", "success");
-      })
-      .catch(fallbackError => {
-        logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
-        updateConnectionStatus("disconnected", "Failed to initialize SDK");
-      });
+              logMessage("SDK initialized successfully using SDK Loader", "success");
+            })
+            .catch(fallbackError => {
+              logMessage(`Failed to initialize SDK with fallback: ${fallbackError.message}`, "error");
+              updateConnectionStatus("disconnected", "Failed to initialize SDK");
+            });
   }
 
   // Call Management Functions
@@ -911,8 +951,8 @@
   endButton.addEventListener("click", () => {
     // Define a fallback value for callEndStatus if cti.Constants is undefined
     const callEndStatus = cti.Constants && cti.Constants.callEndStatus
-      ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
-      : "COMPLETED"; // Fallback value if Constants is undefined
+            ? cti.Constants.callEndStatus.INTERNAL_COMPLETED
+            : "COMPLETED"; // Fallback value if Constants is undefined
 
     // Call the callEnded method with error handling
     try {
@@ -926,7 +966,7 @@
         callEndPromise.catch(error => {
           // Check if it's a 404 error from the terminate endpoint
           if (error && error.message && error.message.includes('404') &&
-              error.message.includes('terminate')) {
+                  error.message.includes('terminate')) {
             logMessage("Warning: Call termination API endpoint returned 404. This may be due to API changes.", "warning");
             logMessage("The call has been ended locally, but HubSpot may not have been notified properly.", "warning");
             logMessage("This won't affect your ability to make or receive calls.", "info");
@@ -1133,7 +1173,7 @@
       row.appendChild(durationCell);
       row.appendChild(actionsCell);
 
-      tableBody.appendChild(row);
+      // tableBody.appendChild(row);
     });
 
     recordingsTable.appendChild(tableBody);
@@ -1224,8 +1264,8 @@
 
       // Format notes (truncate if too long)
       const notes = call.notes ?
-        (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
-        'No notes';
+              (call.notes.length > 50 ? call.notes.substring(0, 50) + '...' : call.notes) :
+              'No notes';
 
       // Create row cells
       row.innerHTML = `
@@ -1415,24 +1455,50 @@
     state.callStartTime = new Date();
     state.callActive = true;
 
-    // Show call status container
-    document.getElementById('call-status-container').style.display = 'block';
-    document.getElementById('call-status-text').textContent = 'Call in progress';
-    document.getElementById('call-duration').textContent = '00:00:00';
+    // Get UI elements
+    const callStatusContainer = document.getElementById('call-status-container');
+    const callStatusText = document.getElementById('call-status-text');
+    const callDuration = document.getElementById('call-duration');
+    const muteBtn = document.getElementById('mute-btn');
+    const holdBtn = document.getElementById('hold-btn');
+    const transferBtn = document.getElementById('transfer-btn');
 
-    // Enable call management buttons
-    enableButtons([
-      document.getElementById('mute-btn'),
-      document.getElementById('hold-btn'),
-      document.getElementById('transfer-btn'),
-      addNotesButton,
-      recordButton
-    ]);
+    // Show call status container if it exists
+    if (callStatusContainer) {
+      callStatusContainer.style.display = 'block';
+    }
 
-    // Display contact information if available
-    if (state.currentContact) {
-      displayContactInfo(state.currentContact);
-    } else {
+    // Update call status text if it exists
+    if (callStatusText) {
+      callStatusText.textContent = 'Call in progress';
+    }
+
+    // Update call duration if it exists
+    if (callDuration) {
+      callDuration.textContent = '00:00:00';
+    }
+
+    // Create an array of buttons that exist
+    const buttonsToEnable = [];
+    if (muteBtn) buttonsToEnable.push(muteBtn);
+    if (holdBtn) buttonsToEnable.push(holdBtn);
+    if (transferBtn) buttonsToEnable.push(transferBtn);
+    if (addNotesButton) buttonsToEnable.push(addNotesButton);
+    if (recordButton) buttonsToEnable.push(recordButton);
+
+    // Enable call management buttons that exist
+    if (buttonsToEnable.length > 0) {
+      enableButtons(buttonsToEnable);
+    }
+
+    // Display contact information if available and if the function exists
+    if (state.currentContact && typeof displayContactInfo === 'function') {
+      try {
+        displayContactInfo(state.currentContact);
+      } catch (error) {
+        logMessage(`Error displaying contact info: ${error.message}`, "error");
+      }
+    } else if (typeof displayContactInfo === 'function') {
       // For incoming calls without contact info, create a basic contact object
       const unknownContact = {
         firstName: "Unknown",
@@ -1441,13 +1507,20 @@
         email: "-",
         company: "-"
       };
-      displayContactInfo(unknownContact);
+      try {
+        displayContactInfo(unknownContact);
+      } catch (error) {
+        logMessage(`Error displaying unknown contact info: ${error.message}`, "error");
+      }
     }
 
     // Start timer to update duration
     state.callTimer = setInterval(() => {
       state.callDuration++;
-      document.getElementById('call-duration').textContent = formatDuration(state.callDuration);
+      const durationElement = document.getElementById('call-duration');
+      if (durationElement) {
+        durationElement.textContent = formatDuration(state.callDuration);
+      }
     }, 1000);
 
     logMessage("Call timer started", "info");
@@ -1462,9 +1535,13 @@
     }
 
     // Stop recording if active
-    if (state.isRecording) {
-      stopRecording();
-      logMessage("Recording stopped due to call end", "info");
+    if (state.isRecording && typeof stopRecording === 'function') {
+      try {
+        stopRecording();
+        logMessage("Recording stopped due to call end", "info");
+      } catch (error) {
+        logMessage(`Error stopping recording: ${error.message}`, "error");
+      }
     }
 
     // Save call to history if it was active
@@ -1507,28 +1584,53 @@
     state.callOnHold = false;
     state.callNotes = ""; // Clear notes for next call
 
-    // Update UI
-    document.getElementById('call-status-text').textContent = 'Call ended';
+    // Get UI elements
+    const callStatusText = document.getElementById('call-status-text');
+    const muteBtn = document.getElementById('mute-btn');
+    const holdBtn = document.getElementById('hold-btn');
+    const transferBtn = document.getElementById('transfer-btn');
+    const callStatusContainer = document.getElementById('call-status-container');
 
-    // Disable call management buttons
-    disableButtons([
-      document.getElementById('mute-btn'),
-      document.getElementById('hold-btn'),
-      document.getElementById('transfer-btn'),
-      addNotesButton
-    ]);
+    // Update UI if elements exist
+    if (callStatusText) {
+      callStatusText.textContent = 'Call ended';
+    }
 
-    // Reset button text
-    document.getElementById('mute-btn').textContent = 'Mute';
-    document.getElementById('hold-btn').textContent = 'Hold';
+    // Create an array of buttons that exist
+    const buttonsToDisable = [];
+    if (muteBtn) buttonsToDisable.push(muteBtn);
+    if (holdBtn) buttonsToDisable.push(holdBtn);
+    if (transferBtn) buttonsToDisable.push(transferBtn);
+    if (addNotesButton) buttonsToDisable.push(addNotesButton);
 
-    // Hide contact information
-    contactInfoDisplay.style.display = 'none';
+    // Disable call management buttons that exist
+    if (buttonsToDisable.length > 0) {
+      disableButtons(buttonsToDisable);
+    }
 
-    // Hide call status container after a delay
-    setTimeout(() => {
-      document.getElementById('call-status-container').style.display = 'none';
-    }, 3000);
+    // Reset button text if elements exist
+    if (muteBtn) {
+      muteBtn.textContent = 'Mute';
+    }
+    if (holdBtn) {
+      holdBtn.textContent = 'Hold';
+    }
+
+    // Hide contact info display if it exists
+    if (contactInfoDisplay) {
+      contactInfoDisplay.style.display = 'none';
+    }
+
+    // Hide call status container after a delay if it exists
+    if (callStatusContainer) {
+      setTimeout(() => {
+        // Check again in case the element was removed during the timeout
+        const container = document.getElementById('call-status-container');
+        if (container) {
+          container.style.display = 'none';
+        }
+      }, 3000);
+    }
 
     logMessage("Call timer stopped", "info");
   }
@@ -1539,15 +1641,26 @@
 
     state.callMuted = !state.callMuted;
     const muteButton = document.getElementById('mute-btn');
+    const callStatusText = document.getElementById('call-status-text');
 
+    // Update state regardless of UI elements
     if (state.callMuted) {
-      muteButton.textContent = 'Unmute';
-      document.getElementById('call-status-text').textContent = 'Call muted';
       logMessage("Call muted", "info");
     } else {
-      muteButton.textContent = 'Mute';
-      document.getElementById('call-status-text').textContent = state.callOnHold ? 'Call on hold' : 'Call in progress';
       logMessage("Call unmuted", "info");
+    }
+
+    // Only update UI if elements exist
+    if (muteButton) {
+      muteButton.textContent = state.callMuted ? 'Unmute' : 'Mute';
+    }
+
+    if (callStatusText) {
+      if (state.callMuted) {
+        callStatusText.textContent = 'Call muted';
+      } else {
+        callStatusText.textContent = state.callOnHold ? 'Call on hold' : 'Call in progress';
+      }
     }
   }
 
@@ -1557,15 +1670,26 @@
 
     state.callOnHold = !state.callOnHold;
     const holdButton = document.getElementById('hold-btn');
+    const callStatusText = document.getElementById('call-status-text');
 
+    // Update state regardless of UI elements
     if (state.callOnHold) {
-      holdButton.textContent = 'Resume';
-      document.getElementById('call-status-text').textContent = 'Call on hold';
       logMessage("Call placed on hold", "info");
     } else {
-      holdButton.textContent = 'Hold';
-      document.getElementById('call-status-text').textContent = state.callMuted ? 'Call muted' : 'Call in progress';
       logMessage("Call resumed", "info");
+    }
+
+    // Only update UI if elements exist
+    if (holdButton) {
+      holdButton.textContent = state.callOnHold ? 'Resume' : 'Hold';
+    }
+
+    if (callStatusText) {
+      if (state.callOnHold) {
+        callStatusText.textContent = 'Call on hold';
+      } else {
+        callStatusText.textContent = state.callMuted ? 'Call muted' : 'Call in progress';
+      }
     }
   }
 
@@ -1644,14 +1768,26 @@
 
   // Helpers to Enable and Disable Buttons
   function enableButtons(buttons) {
+    if (!buttons || !Array.isArray(buttons)) {
+      return; // Exit if buttons is not an array or is null/undefined
+    }
+
     for (const button of buttons) {
-      button.disabled = false;
+      if (button) { // Only set property if button exists
+        button.disabled = false;
+      }
     }
   }
 
   function disableButtons(buttons) {
+    if (!buttons || !Array.isArray(buttons)) {
+      return; // Exit if buttons is not an array or is null/undefined
+    }
+
     for (const button of buttons) {
-      button.disabled = true;
+      if (button) { // Only set property if button exists
+        button.disabled = true;
+      }
     }
   }
 
